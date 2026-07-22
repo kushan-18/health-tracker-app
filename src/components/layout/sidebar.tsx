@@ -18,12 +18,12 @@ import {
   ChevronRight,
   LogOut,
   Zap,
+  Activity,
 } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Avatar } from '@/components/ui/avatar'
-import { Tooltip } from '@/components/ui/tooltip'
 import { useStore } from '@/lib/store'
 
 interface NavItem {
@@ -33,8 +33,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { label: 'AI Coach', href: '/ai-coach', icon: Brain },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'AI Coach', href: '/coach', icon: Brain },
   { label: 'Workout', href: '/workout', icon: Dumbbell },
   { label: 'Sports', href: '/sports', icon: Trophy },
   { label: 'Nutrition', href: '/nutrition', icon: Utensils },
@@ -48,9 +48,21 @@ const navItems: NavItem[] = [
 
 function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const sidebarOpen = useStore((s) => s.sidebarOpen)
   const toggleSidebar = useStore((s) => s.toggleSidebar)
   const user = useStore((s) => s.user)
+  const logout = useStore((s) => s.logout)
+  const [mobileOpen, setMobileOpen] = React.useState(false)
+
+  const handleLogout = () => {
+    logout()
+    window.location.href = '/'
+  }
+
+  const handleNavClick = () => {
+    if (mobileOpen) setMobileOpen(false)
+  }
 
   return (
     <>
@@ -60,11 +72,10 @@ function Sidebar() {
         animate={{ width: sidebarOpen ? 260 : 76 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
       >
-        {/* Logo */}
         <div className="flex h-16 items-center gap-3 px-4 border-b border-white/10">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 shadow-lg shadow-purple-500/25">
+          <Link href="/dashboard" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 shadow-lg shadow-purple-500/25">
             <Zap className="h-5 w-5 text-white" />
-          </div>
+          </Link>
           <AnimatePresence>
             {sidebarOpen && (
               <motion.span
@@ -79,18 +90,17 @@ function Sidebar() {
           </AnimatePresence>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon
 
-            const linkContent = (
+            return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 min-h-[44px]',
                   isActive
                     ? 'text-white'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -118,58 +128,36 @@ function Sidebar() {
                 </AnimatePresence>
               </Link>
             )
-
-            if (!sidebarOpen) {
-              return (
-                <Tooltip key={item.href} content={item.label} side="right">
-                  {linkContent}
-                </Tooltip>
-              )
-            }
-
-            return <div key={item.href}>{linkContent}</div>
           })}
         </nav>
 
-        {/* User Profile */}
         <div className="border-t border-white/10 p-3">
           {sidebarOpen ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center gap-3 rounded-xl p-2 hover:bg-white/5 transition-colors cursor-pointer"
+              className="flex items-center gap-3 rounded-xl p-2 hover:bg-white/5 transition-colors"
             >
-              <Avatar
-                src={user?.avatar}
-                alt={user?.name}
-                fallback={user?.name}
-                size="md"
-                online
-              />
+              <Avatar src={user?.avatar} alt={user?.name} fallback={user?.name} size="md" online />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{user?.name}</p>
                 <p className="text-xs text-gray-400 truncate">{user?.email}</p>
               </div>
-              <button className="text-gray-400 hover:text-white transition-colors" aria-label="Log out">
+              <button
+                onClick={handleLogout}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                aria-label="Log out"
+              >
                 <LogOut className="h-4 w-4" />
               </button>
             </motion.div>
           ) : (
-            <Tooltip content="Profile" side="right">
-              <div className="flex justify-center">
-                <Avatar
-                  src={user?.avatar}
-                  alt={user?.name}
-                  fallback={user?.name}
-                  size="md"
-                  online
-                />
-              </div>
-            </Tooltip>
+            <div className="flex justify-center">
+              <Avatar src={user?.avatar} alt={user?.name} fallback={user?.name} size="md" online />
+            </div>
           )}
         </div>
 
-        {/* Collapse Button */}
         <button
           onClick={toggleSidebar}
           className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-gray-900 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
@@ -179,26 +167,35 @@ function Sidebar() {
         </button>
       </motion.aside>
 
-      {/* Mobile Sidebar */}
-      <div className="lg:hidden">
-        <AnimatePresence>
-          {sidebarOpen && (
-            <>
-              <motion.div
-                className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={toggleSidebar}
-              />
-              <motion.aside
-                className="fixed left-0 top-0 z-50 h-screen w-72 flex flex-col border-r border-white/10 bg-gray-950/95 backdrop-blur-2xl"
-                initial={{ x: -288 }}
-                animate={{ x: 0 }}
-                exit={{ x: -288 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              >
-                <div className="flex h-16 items-center gap-3 px-4 border-b border-white/10">
+      {/* Mobile Hamburger Button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-gray-400 hover:text-white hover:bg-white/20 transition-all active:scale-95"
+        aria-label="Open menu"
+      >
+        <Activity className="h-5 w-5" />
+      </button>
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.aside
+              className="fixed left-0 top-0 z-50 h-screen w-72 flex flex-col border-r border-white/10 bg-gray-950/95 backdrop-blur-2xl lg:hidden"
+              initial={{ x: -288 }}
+              animate={{ x: 0 }}
+              exit={{ x: -288 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            >
+              <div className="flex h-16 items-center justify-between gap-3 px-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-blue-600">
                     <Zap className="h-5 w-5 text-white" />
                   </div>
@@ -206,48 +203,64 @@ function Sidebar() {
                     VitalX AI
                   </span>
                 </div>
-                <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-                  {navItems.map((item) => {
-                    const isActive = pathname === item.href
-                    const Icon = item.icon
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={toggleSidebar}
-                        className={cn(
-                          'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                          isActive
-                            ? 'text-white'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                        )}
-                      >
-                        {isActive && (
-                          <motion.div
-                            layoutId="mobileSidebarActive"
-                            className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600/30 to-blue-600/30 border border-white/10"
-                          />
-                        )}
-                        <Icon className={cn('relative z-10 h-5 w-5 shrink-0', isActive && 'text-purple-400')} />
-                        <span className="relative z-10">{item.label}</span>
-                      </Link>
-                    )
-                  })}
-                </nav>
-                <div className="border-t border-white/10 p-3">
-                  <div className="flex items-center gap-3 rounded-xl p-2">
-                    <Avatar src={user?.avatar} alt={user?.name} fallback={user?.name} size="md" online />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-                      <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-                    </div>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                  aria-label="Close menu"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+              </div>
+
+              <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+                {navItems.map((item) => {
+                  const isActive = pathname === item.href
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={handleNavClick}
+                      className={cn(
+                        'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 min-h-[44px]',
+                        isActive
+                          ? 'text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="mobileSidebarActive"
+                          className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600/30 to-blue-600/30 border border-white/10"
+                        />
+                      )}
+                      <Icon className={cn('relative z-10 h-5 w-5 shrink-0', isActive && 'text-purple-400')} />
+                      <span className="relative z-10">{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+
+              <div className="border-t border-white/10 p-3">
+                <div className="flex items-center gap-3 rounded-xl p-2">
+                  <Avatar src={user?.avatar} alt={user?.name} fallback={user?.name} size="md" online />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{user?.email}</p>
                   </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                    aria-label="Log out"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
                 </div>
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </>
   )
 }
