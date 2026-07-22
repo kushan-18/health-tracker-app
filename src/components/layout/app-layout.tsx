@@ -13,6 +13,7 @@ interface AppLayoutProps {
 
 function AppLayout({ children, title }: AppLayoutProps) {
   const sidebarOpen = useStore((s) => s.sidebarOpen)
+  const theme = useStore((s) => s.theme)
   const [isDesktop, setIsDesktop] = React.useState(false)
 
   React.useEffect(() => {
@@ -21,6 +22,21 @@ function AppLayout({ children, title }: AppLayoutProps) {
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  React.useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'dark') {
+      root.classList.add('dark')
+      root.classList.remove('light')
+      root.style.setProperty('--background', '#030712')
+      root.style.setProperty('--foreground', '#f9fafb')
+    } else {
+      root.classList.remove('dark')
+      root.classList.add('light')
+      root.style.setProperty('--background', '#ffffff')
+      root.style.setProperty('--foreground', '#171717')
+    }
+  }, [theme])
 
   return (
     <div className="min-h-screen bg-gray-950">

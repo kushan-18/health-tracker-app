@@ -108,6 +108,7 @@ export default function ProfileSetupPage() {
     setLoading(true)
     await new Promise((r) => setTimeout(r, 2000))
     setLoading(false)
+    window.location.href = '/dashboard'
   }
 
   return (

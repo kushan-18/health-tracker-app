@@ -1,17 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Mail, Lock, Eye, EyeOff, User, Zap, ArrowRight, Check } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, User, Zap, ArrowRight, Check, X, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/lib/store'
+
+const googleAccounts = [
+  { name: 'Rahul Sharma', email: 'rahul.sharma@gmail.com', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul' },
+  { name: 'Priya Patel', email: 'priya.patel@gmail.com', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya' },
+  { name: 'Vikram Singh', email: 'vikram.singh@gmail.com', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram' },
+]
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -43,6 +49,8 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleStep, setGoogleStep] = useState<'none' | 'choose' | 'password'>('none')
+  const [selectedAccount, setSelectedAccount] = useState<typeof googleAccounts[0] | null>(null)
   const router = useRouter()
   const { register: registerUser, socialLogin } = useStore()
 
@@ -63,7 +71,7 @@ export default function RegisterPage() {
     await new Promise((r) => setTimeout(r, 1000))
     registerUser(data.name, data.email)
     setLoading(false)
-    router.push('/dashboard')
+    window.location.href = '/profile/setup'
   }
 
   const handleSocialLogin = async (provider: string) => {
@@ -71,7 +79,26 @@ export default function RegisterPage() {
     await new Promise((r) => setTimeout(r, 1000))
     socialLogin(provider)
     setLoading(false)
-    router.push('/dashboard')
+    window.location.href = '/profile/setup'
+  }
+
+  const handleGoogleClick = () => {
+    setGoogleStep('choose')
+  }
+
+  const handleAccountSelect = (account: typeof googleAccounts[0]) => {
+    setSelectedAccount(account)
+    setGoogleStep('password')
+  }
+
+  const handleGooglePasswordSubmit = async () => {
+    setLoading(true)
+    await new Promise((r) => setTimeout(r, 1500))
+    if (selectedAccount) {
+      registerUser(selectedAccount.name, selectedAccount.email)
+      window.location.href = '/profile/setup'
+    }
+    setLoading(false)
   }
 
   return (
@@ -154,7 +181,7 @@ export default function RegisterPage() {
           </p>
 
           <div className="mt-8 space-y-4">
-            <Button variant="secondary" className="w-full h-12" onClick={() => handleSocialLogin('google')} loading={loading} type="button">
+            <Button variant="secondary" className="w-full h-12" onClick={handleGoogleClick} type="button">
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -275,6 +302,109 @@ export default function RegisterPage() {
           </form>
         </motion.div>
       </div>
+
+      {/* Google Sign-In Modal */}
+      <AnimatePresence>
+        {googleStep !== 'none' && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setGoogleStep('none')} />
+            <motion.div
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              {googleStep === 'choose' && (
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <svg className="h-6 w-6" viewBox="0 0 24 24">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                      </svg>
+                      <span className="text-gray-800 font-medium">Sign up with Google</span>
+                    </div>
+                    <button onClick={() => setGoogleStep('none')} className="text-gray-400 hover:text-gray-600">
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-4">Choose an account to continue to VitalX AI</p>
+                  {googleAccounts.map((account) => (
+                    <button
+                      key={account.email}
+                      onClick={() => handleAccountSelect(account)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 transition-colors text-left"
+                    >
+                      <img src={account.avatar} alt={account.name} className="h-10 w-10 rounded-full bg-gray-200" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                        <p className="text-xs text-gray-500">{account.email}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400" />
+                    </button>
+                  ))}
+                  <button className="w-full mt-4 p-3 rounded-xl hover:bg-gray-100 transition-colors text-sm text-gray-600 font-medium">
+                    Use another account
+                  </button>
+                </div>
+              )}
+
+              {googleStep === 'password' && selectedAccount && (
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <svg className="h-6 w-6" viewBox="0 0 24 24">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                      </svg>
+                      <span className="text-gray-800 font-medium">Welcome</span>
+                    </div>
+                    <button onClick={() => setGoogleStep('none')} className="text-gray-400 hover:text-gray-600">
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 mb-6">
+                    <img src={selectedAccount.avatar} alt={selectedAccount.name} className="h-8 w-8 rounded-full bg-gray-200" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{selectedAccount.email}</p>
+                    </div>
+                    <button onClick={() => setGoogleStep('choose')} className="ml-auto text-xs text-blue-600 hover:underline">
+                      Switch
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-700 mb-2">Enter your password</p>
+                  <input
+                    type="password"
+                    placeholder="Enter your password"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleGooglePasswordSubmit() }}
+                  />
+                  <button className="text-sm text-blue-600 hover:underline mb-6">Forgot password?</button>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleGooglePasswordSubmit}
+                      disabled={loading}
+                      className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Signing up...' : 'Next'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

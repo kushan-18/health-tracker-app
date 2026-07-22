@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Mail, Lock, Eye, EyeOff, Zap, ArrowRight } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Zap, ArrowRight, ChevronRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -20,11 +20,19 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>
 
+const googleAccounts = [
+  { name: 'Rahul Sharma', email: 'rahul.sharma@gmail.com', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul' },
+  { name: 'Priya Patel', email: 'priya.patel@gmail.com', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Priya' },
+  { name: 'Vikram Singh', email: 'vikram.singh@gmail.com', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram' },
+]
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleStep, setGoogleStep] = useState<'none' | 'choose' | 'password'>('none')
+  const [selectedAccount, setSelectedAccount] = useState<typeof googleAccounts[0] | null>(null)
   const router = useRouter()
-  const { login, socialLogin } = useStore()
+  const { login } = useStore()
 
   const {
     register,
@@ -34,44 +42,66 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   })
 
-  const onSubmit = async (data: LoginForm) => {
-    setLoading(true)
-    await new Promise((r) => setTimeout(r, 1000))
+  const completeLogin = (name: string, email: string) => {
     login({
       id: 'user_' + Date.now(),
-      name: data.email.split('@')[0],
-      email: data.email,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email}`,
-      age: 25,
+      name,
+      email,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+      age: 0,
       gender: 'male',
-      height: 175,
-      weight: 75,
+      height: 0,
+      weight: 0,
       goal: 'general_fitness',
       activityLevel: 'moderate',
       medicalConditions: [],
       dietPreference: 'none',
-      workoutExperience: 'intermediate',
+      workoutExperience: 'beginner',
       sportsPlayed: [],
-      sleepSchedule: '10:30 PM - 7:00 AM',
+      sleepSchedule: '',
       waterIntake: 8,
-      targetWeight: 72,
+      targetWeight: 0,
       targetCalories: 2200,
       createdAt: new Date().toISOString(),
     })
-    setLoading(false)
-    router.push('/dashboard')
+    router.push('/profile/setup')
   }
 
-  const handleSocialLogin = async (provider: string) => {
+  const onSubmit = async (data: LoginForm) => {
     setLoading(true)
     await new Promise((r) => setTimeout(r, 1000))
-    socialLogin(provider)
+    completeLogin(data.email.split('@')[0], data.email)
     setLoading(false)
-    router.push('/dashboard')
+  }
+
+  const handleGoogleClick = () => {
+    setGoogleStep('choose')
+  }
+
+  const handleAccountSelect = (account: typeof googleAccounts[0]) => {
+    setSelectedAccount(account)
+    setGoogleStep('password')
+  }
+
+  const handleGooglePasswordSubmit = async () => {
+    setLoading(true)
+    await new Promise((r) => setTimeout(r, 1500))
+    if (selectedAccount) {
+      completeLogin(selectedAccount.name, selectedAccount.email)
+    }
+    setLoading(false)
+  }
+
+  const handleAppleLogin = async () => {
+    setLoading(true)
+    await new Promise((r) => setTimeout(r, 1000))
+    completeLogin('Apple User', 'user@icloud.com')
+    setLoading(false)
   }
 
   return (
     <div className="min-h-screen flex">
+      {/* Left side branding */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-purple-900/40 via-gray-950 to-blue-900/40 items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-purple-600/20 blur-[120px]" />
@@ -100,7 +130,6 @@ export default function LoginPage() {
           <p className="mt-6 text-gray-400 text-lg leading-relaxed">
             Track workouts, optimize nutrition, and achieve your fitness goals with AI-powered coaching.
           </p>
-
           <div className="mt-12 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600/20 to-blue-600/20 border border-white/10 flex items-center justify-center">
@@ -133,6 +162,7 @@ export default function LoginPage() {
         </motion.div>
       </div>
 
+      {/* Right side form */}
       <div className="flex flex-1 items-center justify-center px-4 sm:px-8 py-12 bg-gray-950">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -160,7 +190,7 @@ export default function LoginPage() {
           </p>
 
           <div className="mt-8 space-y-4">
-            <Button variant="secondary" className="w-full h-12" onClick={() => handleSocialLogin('google')} loading={loading} type="button">
+            <Button variant="secondary" className="w-full h-12" onClick={handleGoogleClick} type="button">
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -169,7 +199,7 @@ export default function LoginPage() {
               </svg>
               Continue with Google
             </Button>
-            <Button variant="secondary" className="w-full h-12" onClick={() => handleSocialLogin('apple')} loading={loading} type="button">
+            <Button variant="secondary" className="w-full h-12" onClick={handleAppleLogin} loading={loading} type="button">
               <svg className="h-5 w-5 mr-2" fill="white" viewBox="0 0 24 24">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
               </svg>
@@ -233,6 +263,109 @@ export default function LoginPage() {
           </form>
         </motion.div>
       </div>
+
+      {/* Google Sign-In Modal */}
+      <AnimatePresence>
+        {googleStep !== 'none' && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setGoogleStep('none')} />
+            <motion.div
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              {googleStep === 'choose' && (
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <svg className="h-6 w-6" viewBox="0 0 24 24">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                      </svg>
+                      <span className="text-gray-800 font-medium">Sign in with Google</span>
+                    </div>
+                    <button onClick={() => setGoogleStep('none')} className="text-gray-400 hover:text-gray-600">
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-4">Choose an account to continue to VitalX AI</p>
+                  {googleAccounts.map((account) => (
+                    <button
+                      key={account.email}
+                      onClick={() => handleAccountSelect(account)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-100 transition-colors text-left"
+                    >
+                      <img src={account.avatar} alt={account.name} className="h-10 w-10 rounded-full bg-gray-200" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{account.name}</p>
+                        <p className="text-xs text-gray-500">{account.email}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-gray-400" />
+                    </button>
+                  ))}
+                  <button className="w-full mt-4 p-3 rounded-xl hover:bg-gray-100 transition-colors text-sm text-gray-600 font-medium">
+                    Use another account
+                  </button>
+                </div>
+              )}
+
+              {googleStep === 'password' && selectedAccount && (
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <svg className="h-6 w-6" viewBox="0 0 24 24">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                      </svg>
+                      <span className="text-gray-800 font-medium">Welcome</span>
+                    </div>
+                    <button onClick={() => setGoogleStep('none')} className="text-gray-400 hover:text-gray-600">
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 mb-6">
+                    <img src={selectedAccount.avatar} alt={selectedAccount.name} className="h-8 w-8 rounded-full bg-gray-200" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{selectedAccount.email}</p>
+                    </div>
+                    <button onClick={() => setGoogleStep('choose')} className="ml-auto text-xs text-blue-600 hover:underline">
+                      Switch
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-700 mb-2">Enter your password</p>
+                  <input
+                    type="password"
+                    placeholder="Enter your password"
+                    className="w-full h-12 px-4 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleGooglePasswordSubmit() }}
+                  />
+                  <button className="text-sm text-blue-600 hover:underline mb-6">Forgot password?</button>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleGooglePasswordSubmit}
+                      disabled={loading}
+                      className="px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Signing in...' : 'Next'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

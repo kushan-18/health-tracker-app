@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Bell, Sun, Moon, ChevronDown, LogOut, Settings, User, HelpCircle } from 'lucide-react'
+import { Search, Bell, Sun, Moon, ChevronDown, LogOut, Settings, User, HelpCircle, Dumbbell, Droplets, Moon as MoonIcon, Trophy, Check, X } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Avatar } from '@/components/ui/avatar'
@@ -15,6 +15,13 @@ interface NavbarProps {
 function Navbar({ title }: NavbarProps) {
   const [searchFocused, setSearchFocused] = React.useState(false)
   const [profileOpen, setProfileOpen] = React.useState(false)
+  const [notifOpen, setNotifOpen] = React.useState(false)
+  const [notifications, setNotifications] = React.useState([
+    { id: 1, icon: Dumbbell, text: 'Time for your workout!', time: '10 min ago', read: false, color: 'text-purple-400' },
+    { id: 2, icon: Droplets, text: 'Drink water reminder', time: '30 min ago', read: false, color: 'text-blue-400' },
+    { id: 3, icon: Trophy, text: 'You completed a 15-day streak!', time: '1 hour ago', read: false, color: 'text-yellow-400' },
+    { id: 4, icon: MoonIcon, text: 'Great sleep score: 8.5/10', time: '8 hours ago', read: true, color: 'text-indigo-400' },
+  ])
   const theme = useStore((s) => s.theme)
   const toggleTheme = useStore((s) => s.toggleTheme)
   const user = useStore((s) => s.user)
@@ -60,19 +67,77 @@ function Navbar({ title }: NavbarProps) {
         className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-400 hover:bg-white/10 hover:text-white transition-all active:scale-95"
         aria-label="Toggle theme"
       >
-        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        <motion.div
+          key={theme}
+          initial={{ rotate: -90, opacity: 0 }}
+          animate={{ rotate: 0, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </motion.div>
       </button>
 
       {/* Notifications */}
-      <button
-        className="relative flex h-10 w-10 items-center justify-center rounded-xl text-gray-400 hover:bg-white/10 hover:text-white transition-all active:scale-95"
-        aria-label="Notifications"
-      >
-        <Bell className="h-5 w-5" />
-        <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-          3
-        </span>
-      </button>
+      <div className="relative">
+        <button
+          onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false) }}
+          className="relative flex h-10 w-10 items-center justify-center rounded-xl text-gray-400 hover:bg-white/10 hover:text-white transition-all active:scale-95"
+          aria-label="Notifications"
+        >
+          <Bell className="h-5 w-5" />
+          {notifications.filter(n => !n.read).length > 0 && (
+            <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {notifications.filter(n => !n.read).length}
+            </span>
+          )}
+        </button>
+        <AnimatePresence>
+          {notifOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-white/10 bg-gray-900/95 backdrop-blur-xl p-2 shadow-2xl"
+              >
+                <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 mb-1">
+                  <p className="text-sm font-semibold text-white">Notifications</p>
+                  <button
+                    onClick={() => setNotifications(n => n.map(x => ({ ...x, read: true })))}
+                    className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                  >
+                    Mark all read
+                  </button>
+                </div>
+                {notifications.map((notif) => (
+                  <div
+                    key={notif.id}
+                    className={`flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors ${notif.read ? 'opacity-60' : 'bg-white/5'}`}
+                  >
+                    <div className={`mt-0.5 ${notif.color}`}>
+                      <notif.icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white">{notif.text}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{notif.time}</p>
+                    </div>
+                    {!notif.read && (
+                      <div className="mt-1.5 h-2 w-2 rounded-full bg-purple-500 flex-shrink-0" />
+                    )}
+                  </div>
+                ))}
+                <div className="border-t border-white/10 mt-1 pt-1">
+                  <button className="w-full text-center text-xs text-purple-400 hover:text-purple-300 py-2 transition-colors">
+                    View all notifications
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Profile Dropdown */}
       <div className="relative">
