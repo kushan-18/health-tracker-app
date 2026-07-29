@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   User,
   Ruler,
@@ -21,6 +22,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { useStore } from '@/lib/store'
+import { hasCompletedSetup, getSavedProfile, saveProfileSetup } from '@/lib/userProfiles'
 
 interface StepConfig {
   icon: React.ComponentType<{ className?: string }>
@@ -51,8 +54,20 @@ const diets = ['None', 'Vegetarian', 'Vegan', 'Keto', 'Paleo', 'Mediterranean']
 const experiences = ['Beginner', 'Intermediate', 'Advanced']
 
 export default function ProfileSetupPage() {
+  const router = useRouter()
+  const { user, login } = useStore()
+
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
+
+  // Redirect to dashboard immediately if this user has already completed setup in the past
+  useEffect(() => {
+    if (user?.email && hasCompletedSetup(user.email)) {
+      const saved = getSavedProfile(user.email)
+      if (saved) login(saved)
+      router.push('/dashboard')
+    }
+  }, [user, router, login])
 
   const [form, setForm] = useState({
     name: '',
@@ -106,9 +121,26 @@ export default function ProfileSetupPage() {
 
   const handleFinish = async () => {
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 2000))
+    await new Promise((r) => setTimeout(r, 1000))
+    if (user?.email) {
+      const updatedUser = saveProfileSetup(user.email, {
+        name: form.name || user.name,
+        age: Number(form.age) || 25,
+        gender: form.gender || 'male',
+        height: Number(form.height) || 175,
+        weight: Number(form.weight) || 70,
+        targetWeight: Number(form.targetWeight) || 68,
+        goal: form.goal || 'Improve Fitness',
+        activityLevel: form.activityLevel || 'moderate',
+        dietPreference: form.diet || 'None',
+        workoutExperience: form.experience || 'Intermediate',
+        medicalConditions: form.medicalConditions ? [form.medicalConditions] : [],
+        sleepSchedule: form.bedtime && form.wakeTime ? `${form.bedtime} - ${form.wakeTime}` : '23:00 - 07:00',
+      })
+      login(updatedUser)
+    }
     setLoading(false)
-    window.location.href = '/dashboard'
+    router.push('/dashboard')
   }
 
   return (
