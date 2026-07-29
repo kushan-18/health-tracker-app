@@ -3,7 +3,6 @@ import { User } from './types'
 const COMPLETED_PROFILES_KEY = 'vitalx_completed_profiles'
 const USER_PROFILES_KEY = 'vitalx_user_profiles'
 
-// Default pre-saved profiles so default accounts don't ask for setup
 const DEFAULT_PRESET_PROFILES: Record<string, Partial<User>> = {
   'kushandholiya@gmail.com': {
     name: 'Kushan Dholiya',
@@ -61,10 +60,7 @@ const DEFAULT_PRESET_PROFILES: Record<string, Partial<User>> = {
 export function hasCompletedSetup(email: string): boolean {
   if (!email) return false
   const normEmail = email.toLowerCase()
-
-  // Preset accounts are pre-completed
   if (DEFAULT_PRESET_PROFILES[normEmail]) return true
-
   if (typeof window === 'undefined') return false
   try {
     const raw = localStorage.getItem(COMPLETED_PROFILES_KEY)
@@ -80,7 +76,6 @@ export function getSavedProfile(email: string, defaultName?: string): User | nul
   if (!email) return null
   const normEmail = email.toLowerCase()
 
-  // Check custom saved profile in localStorage
   if (typeof window !== 'undefined') {
     try {
       const rawProfiles = localStorage.getItem(USER_PROFILES_KEY)
@@ -93,7 +88,6 @@ export function getSavedProfile(email: string, defaultName?: string): User | nul
     } catch (e) {}
   }
 
-  // Check preset profiles
   if (DEFAULT_PRESET_PROFILES[normEmail]) {
     const preset = DEFAULT_PRESET_PROFILES[normEmail]
     return {
@@ -115,6 +109,7 @@ export function getSavedProfile(email: string, defaultName?: string): User | nul
       sleepSchedule: preset.sleepSchedule || '23:00 - 07:00',
       waterIntake: preset.waterIntake || 8,
       targetCalories: preset.targetCalories || 2200,
+      bodyFat: 0,
       createdAt: new Date().toISOString(),
     }
   }
@@ -145,18 +140,17 @@ export function saveProfileSetup(email: string, userDetails: Partial<User>): Use
     sleepSchedule: userDetails.sleepSchedule || existing?.sleepSchedule || '23:00 - 07:00',
     waterIntake: userDetails.waterIntake ?? existing?.waterIntake ?? 8,
     targetCalories: userDetails.targetCalories ?? existing?.targetCalories ?? 2200,
+    bodyFat: userDetails.bodyFat ?? existing?.bodyFat ?? 0,
     createdAt: existing?.createdAt || new Date().toISOString(),
   }
 
   if (typeof window !== 'undefined') {
     try {
-      // Save completed flag
       const rawCompleted = localStorage.getItem(COMPLETED_PROFILES_KEY)
       const completedMap: Record<string, boolean> = rawCompleted ? JSON.parse(rawCompleted) : {}
       completedMap[normEmail] = true
       localStorage.setItem(COMPLETED_PROFILES_KEY, JSON.stringify(completedMap))
 
-      // Save user profile details
       const rawProfiles = localStorage.getItem(USER_PROFILES_KEY)
       const profilesMap: Record<string, User> = rawProfiles ? JSON.parse(rawProfiles) : {}
       profilesMap[normEmail] = updatedUser
