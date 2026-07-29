@@ -1,0 +1,1 @@
+Start-Process -FilePath "npx" -ArgumentList "next", "start", "-p", "3000" -WorkingDirectory "C:\Users\GOLDEN AURA\OneDrive\Documents\health website\vitalx-ai" -WindowStyle Normal
