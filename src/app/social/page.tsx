@@ -68,6 +68,9 @@ const achievements = [
 export default function SocialPage() {
   return (
     <AppLayout title="Social">
+      <div className="mb-4 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs text-center">
+        Demo page — social features require backend setup. Data shown is illustrative.
+      </div>
       <Tabs defaultValue="feed">
         <TabsList className="mb-6">
           <TabsTrigger value="feed"><MessageCircle className="h-4 w-4 mr-1.5" />Feed</TabsTrigger>

@@ -142,7 +142,7 @@ export default function LandingPage() {
                   Start Free <ArrowRight className="w-4 h-4" />
                 </Link>
                 <a href="#features" className="inline-flex items-center gap-2 glass px-8 py-3.5 rounded-xl font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all cursor-pointer">
-                  <Play className="w-4 h-4" /> Watch Demo
+                  <Play className="w-4 h-4" /> Explore Features
                 </a>
               </motion.div>
               <motion.div variants={fadeUp} className="flex items-center gap-6 mt-10 text-sm text-white/40">
@@ -351,9 +351,9 @@ export default function LandingPage() {
                 <Apple className="w-3 h-3" /> Nutrition
               </motion.div>
               <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl font-bold mb-4">Smart nutrition that <span className="gradient-text">adapts to you</span></motion.h2>
-              <motion.p variants={fadeUp} className="text-white/40 mb-6 leading-relaxed">Our AI analyzes your body composition, activity level, and preferences to create meal plans you&apos;ll actually enjoy. Track macros effortlessly with photo recognition.</motion.p>
+              <motion.p variants={fadeUp} className="text-white/40 mb-6 leading-relaxed">Our AI analyzes your activity level and preferences to create meal plans you&apos;ll actually enjoy. Track macros effortlessly with smart logging.</motion.p>
               <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
-                {["Photo Recognition", "Macro Tracking", "Meal Planning", "Recipe Database"].map((tag) => (
+                {["Macro Tracking", "Meal Planning", "Recipe Database", "Smart Logging"].map((tag) => (
                   <span key={tag} className="px-3 py-1.5 rounded-full glass text-xs text-white/50">{tag}</span>
                 ))}
               </motion.div>
@@ -395,16 +395,16 @@ export default function LandingPage() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-purple-400 mb-4"><Trophy className="w-3 h-3" /> Sports</div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Analytics for <span className="gradient-text">every sport</span></h2>
-            <p className="text-white/40 max-w-2xl mx-auto">Track performance across 50+ sports with detailed metrics, training plans, and competition analysis.</p>
+            <p className="text-white/40 max-w-2xl mx-auto">Track performance across multiple sports with detailed metrics, training plans, and progress analysis.</p>
           </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              { name: "Running", metric: "VO2 Max: 48", icon: "🏃" },
-              { name: "Cycling", metric: "FTP: 245W", icon: "🚴" },
-              { name: "Swimming", metric: "1:42/100m", icon: "🏊" },
-              { name: "Basketball", metric: "Vertical: 28\"", icon: "🏀" },
-              { name: "Tennis", metric: "Serve: 110mph", icon: "🎾" },
-              { name: "Soccer", metric: "Distance: 11km", icon: "⚽" },
+              { name: "Running", metric: "Distance, pace, elevation", icon: "🏃" },
+              { name: "Cycling", metric: "Speed, distance, power", icon: "🚴" },
+              { name: "Swimming", metric: "Laps, pace, distance", icon: "🏊" },
+              { name: "Basketball", metric: "Sessions, minutes, intensity", icon: "🏀" },
+              { name: "Tennis", metric: "Match time, serve stats", icon: "🎾" },
+              { name: "Soccer", metric: "Distance, sprints, sessions", icon: "⚽" },
             ].map((sport) => (
               <motion.div key={sport.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="glass rounded-2xl p-5 flex items-center gap-4 hover:bg-white/[0.08] transition-all cursor-pointer">
                 <div className="text-3xl">{sport.icon}</div>
@@ -491,10 +491,12 @@ export default function LandingPage() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-rose-400 mb-4"><Users className="w-3 h-3" /> Community</div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Join the <span className="gradient-text">health movement</span></h2>
-            <p className="text-white/40 max-w-2xl mx-auto">Connect with millions of health enthusiasts, share achievements, and stay motivated together.</p>
+            <p className="text-white/40 max-w-2xl mx-auto">Connect with health enthusiasts, share achievements, and stay motivated together.</p>
+            <p className="text-xs text-white/25 mt-3">Community features coming soon</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="glass-strong rounded-3xl p-6 max-w-2xl mx-auto">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><Trophy className="w-5 h-5 text-amber-400" /> Leaderboard</h3>
+            <p className="text-xs text-white/25 mb-4">Sample leaderboard — will be populated with real users at launch</p>
             <div className="space-y-3">
               {[
                 { rank: 1, name: "Alex Rivera", points: "12,450", avatar: "AR", badge: "🥇" },
@@ -568,7 +570,7 @@ export default function LandingPage() {
                   <p className="text-sm text-white/40">{plan.desc}</p>
                 </div>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">${plan.price}</span>
+                  <span className="text-4xl font-bold">{plan.price}</span>
                   <span className="text-white/40 text-sm">/{plan.period}</span>
                 </div>
                 <Link href="/auth/register" className={`block w-full text-center py-3 rounded-xl font-medium transition-all mb-6 ${plan.popular ? "bg-emerald-500 text-white hover:bg-emerald-600" : "glass text-white hover:bg-white/10"}`}>
@@ -636,7 +638,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-12 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center"><Zap className="w-5 h-5 text-white" /></div>
@@ -645,9 +647,8 @@ export default function LandingPage() {
               <p className="text-sm text-white/30 leading-relaxed">Your personal AI health coach. Optimize nutrition, fitness, and wellness with the power of artificial intelligence.</p>
             </div>
             {[
-              { title: "Product", links: [{ text: "Features", href: "#features" }, { text: "Pricing", href: "#pricing" }, { text: "Integrations", href: "#features" }, { text: "API", href: "#features" }] },
-              { title: "Company", links: [{ text: "About", href: "#features" }, { text: "Blog", href: "#" }, { text: "Careers", href: "#" }, { text: "Press", href: "#" }] },
-              { title: "Support", links: [{ text: "Help Center", href: "#" }, { text: "Contact", href: "#" }, { text: "Privacy", href: "/privacy" }, { text: "Terms", href: "/terms" }] },
+              { title: "Product", links: [{ text: "Features", href: "#features" }, { text: "Pricing", href: "#pricing" }, { text: "FAQ", href: "#faq" }] },
+              { title: "Support", links: [{ text: "Privacy", href: "/privacy" }, { text: "Terms", href: "/terms" }] },
             ].map((col) => (
               <div key={col.title}>
                 <h4 className="font-semibold text-sm mb-4">{col.title}</h4>
