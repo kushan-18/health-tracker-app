@@ -5,24 +5,25 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { sportSessions, sportRecords, leaderboardData } from "@/lib/data";
+import { getWorkouts } from "@/lib/data-operations";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play, Pause, Timer, Flame, Heart, Trophy, TrendingUp,
-  Medal, Crown, ChevronDown, ChevronUp, Zap, Target,
+  ChevronDown, ChevronUp, Zap, Target, Medal,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  RadarChart, PolarGrid, PolarAngleAxis, Radar,
 } from "recharts";
 
 type SportType = "Running" | "Cycling" | "Swimming" | "Basketball" | "Football" | "Tennis" | "Cricket" | "Badminton" | "Yoga" | "Pilates" | "HIIT";
 
 const sportIcons: Record<string, string> = {
-  Running: "🏃", Cycling: "🚴", Swimming: "🏊", Basketball: "🏀",
-  Football: "⚽", Tennis: "🎾", Badminton: "🏸", Cricket: "🏏",
-  Yoga: "🧘", Pilates: "🤸", HIIT: "⚡", Boxing: "🥊",
+  Running: "\u{1F3C3}", Cycling: "\u{1F6B4}", Swimming: "\u{1F3CA}", Basketball: "\u{1F3C0}",
+  Football: "\u26BD", Tennis: "\u{1F3BE}", Badminton: "\u{1F3F8}", Cricket: "\u{1F3CF}",
+  Yoga: "\u{1F9D8}", Pilates: "\u{1F938}", HIIT: "\u26A1", Boxing: "\u{1F94A}",
+  Cardio: "\u{1F3C3}", Strength: "\u{1F4AA}", Flexibility: "\u{1F9D8}",
 };
 
 const sportColors: Record<string, string> = {
@@ -38,6 +39,9 @@ const sportColors: Record<string, string> = {
   Pilates: "from-teal-500 to-cyan-500",
   HIIT: "from-red-500 to-pink-500",
   Boxing: "from-red-600 to-red-500",
+  Cardio: "from-emerald-500 to-green-500",
+  Strength: "from-orange-500 to-amber-500",
+  Flexibility: "from-purple-500 to-violet-500",
 };
 
 const allSports: SportType[] = ["Running", "Cycling", "Swimming", "Basketball", "Football", "Tennis", "Cricket", "Badminton", "Yoga", "Pilates", "HIIT"];
@@ -50,12 +54,10 @@ export default function SportPage() {
           <TabsTrigger value="active"><Play className="h-4 w-4 mr-1.5" />Active</TabsTrigger>
           <TabsTrigger value="history"><Timer className="h-4 w-4 mr-1.5" />History</TabsTrigger>
           <TabsTrigger value="performance"><TrendingUp className="h-4 w-4 mr-1.5" />Performance</TabsTrigger>
-          <TabsTrigger value="leaderboard"><Trophy className="h-4 w-4 mr-1.5" />Leaderboard</TabsTrigger>
         </TabsList>
         <TabsContent value="active"><ActiveSportTab /></TabsContent>
         <TabsContent value="history"><SportHistoryTab /></TabsContent>
         <TabsContent value="performance"><PerformanceTab /></TabsContent>
-        <TabsContent value="leaderboard"><LeaderboardTab /></TabsContent>
       </Tabs>
     </AppLayout>
   );
@@ -99,8 +101,8 @@ function ActiveSportTab() {
                 onClick={() => setSelectedSport(sport)}
                 className="w-full p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-600 transition-all text-center group cursor-pointer"
               >
-                <div className={cn("w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center mx-auto mb-3 text-2xl", sportColors[sport])}>
-                  {sportIcons[sport]}
+                <div className={cn("w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center mx-auto mb-3 text-2xl", sportColors[sport] || "from-gray-500 to-gray-600")}>
+                  {sportIcons[sport] || "\u{1F3C3}"}
                 </div>
                 <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">{sport}</span>
               </button>
@@ -114,10 +116,10 @@ function ActiveSportTab() {
   if (!tracking) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => setSelectedSport(null)}>← Back to Sports</Button>
-        <Card className={cn("border-zinc-700/50 bg-gradient-to-br", sportColors[selectedSport])}>
+        <Button variant="ghost" size="sm" onClick={() => setSelectedSport(null)}>{"\u2190"} Back to Sports</Button>
+        <Card className={cn("border-zinc-700/50 bg-gradient-to-br", sportColors[selectedSport] || "from-gray-500 to-gray-600")}>
           <CardContent className="p-8 text-center">
-            <div className="text-6xl mb-4">{sportIcons[selectedSport]}</div>
+            <div className="text-6xl mb-4">{sportIcons[selectedSport] || "\u{1F3C3}"}</div>
             <h2 className="text-2xl font-bold text-white mb-2">{selectedSport}</h2>
             <p className="text-white/70 mb-6">Ready to start your session?</p>
             <Button size="lg" className="bg-white text-zinc-900 hover:bg-white/90" onClick={() => { setTracking(true); setElapsed(0); setHeartRate(72); setDistance(0); }}>
@@ -132,8 +134,8 @@ function ActiveSportTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => { setTracking(false); setSelectedSport(null); }}>← End Session</Button>
-        <span className="text-sm text-zinc-400">{sportIcons[selectedSport]} {selectedSport}</span>
+        <Button variant="ghost" size="sm" onClick={() => { setTracking(false); setSelectedSport(null); }}>{"\u2190"} End Session</Button>
+        <span className="text-sm text-zinc-400">{sportIcons[selectedSport] || "\u{1F3C3}"} {selectedSport}</span>
       </div>
       <Card className="border-zinc-700/50 bg-gradient-to-br from-zinc-900/80 to-zinc-800/50">
         <CardContent className="p-6">
@@ -165,23 +167,41 @@ function ActiveSportTab() {
         <Button variant={isPaused ? "default" : "secondary"} className="flex-1" onClick={() => setIsPaused(!isPaused)}>
           {isPaused ? <><Play className="h-4 w-4" /> Resume</> : <><Pause className="h-4 w-4" /> Pause</>}
         </Button>
-        <Button variant="success" className="flex-1" onClick={() => setTracking(false)}><Trophy className="h-4 w-4" /> Finish</Button>
+        <Button variant="success" className="flex-1"><Trophy className="h-4 w-4" /> Finish</Button>
       </div>
     </div>
   );
 }
 
 function SportHistoryTab() {
+  const { user } = useAuth();
+  const [sessions, setSessions] = React.useState<any[]>([]);
   const [filter, setFilter] = React.useState<string>("All");
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
-  const sessions = (sportSessions as any[]) || [];
-  const filtered = filter === "All" ? sessions : sessions.filter((s: any) => s.sport === filter);
+
+  React.useEffect(() => {
+    if (!user) return;
+    getWorkouts(user.id).then(setSessions).catch(console.error);
+  }, [user]);
+
+  const filtered = filter === "All" ? sessions : sessions.filter((s: any) => s.type === filter);
+  const sportTypes = [...new Set(sessions.map((s: any) => s.type))];
+
+  if (sessions.length === 0) {
+    return (
+      <Card className="p-12 text-center">
+        <Timer className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
+        <h3 className="text-lg font-medium text-white mb-2">No sport sessions yet</h3>
+        <p className="text-zinc-400 text-sm">Complete a workout or active sport session to see your history here.</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex gap-2 overflow-x-auto pb-2">
         <Button variant={filter === "All" ? "default" : "secondary"} size="sm" onClick={() => setFilter("All")}>All</Button>
-        {[...new Set(sessions.map((s: any) => s.sport))].map((sport: string) => (
+        {sportTypes.map((sport: string) => (
           <Button key={sport} variant={filter === sport ? "default" : "secondary"} size="sm" onClick={() => setFilter(sport)}>{sport}</Button>
         ))}
       </div>
@@ -191,18 +211,17 @@ function SportHistoryTab() {
             <Card className="overflow-hidden">
               <button onClick={() => setExpandedId(expandedId === session.id ? null : session.id)} className="w-full text-left p-4 flex items-center justify-between cursor-pointer">
                 <div className="flex items-center gap-3">
-                  <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg", sportColors[session.sport] || "from-gray-500 to-gray-600")}>
-                    {sportIcons[session.sport] || "🏃"}
+                  <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg", sportColors[session.type] || "from-gray-500 to-gray-600")}>
+                    {sportIcons[session.type] || "\u{1F3C3}"}
                   </div>
                   <div>
-                    <div className="font-medium text-white">{session.sport}</div>
-                    <div className="text-xs text-zinc-400">{session.duration} min</div>
+                    <div className="font-medium text-white">{session.name || session.type}</div>
+                    <div className="text-xs text-zinc-400">{session.duration_minutes} min</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right hidden sm:block">
-                    <div className="text-sm font-medium text-orange-400">{session.caloriesBurned} cal</div>
-                    {session.distance && <div className="text-xs text-zinc-500">{session.distance} km</div>}
+                    <div className="text-sm font-medium text-orange-400">{session.calories_burned} cal</div>
                   </div>
                   {expandedId === session.id ? <ChevronUp className="h-4 w-4 text-zinc-400" /> : <ChevronDown className="h-4 w-4 text-zinc-400" />}
                 </div>
@@ -211,23 +230,18 @@ function SportHistoryTab() {
                 {expandedId === session.id && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                     <div className="px-4 pb-4 border-t border-zinc-800 space-y-3">
-                      <div className="grid grid-cols-3 gap-3 py-3">
+                      <div className="grid grid-cols-2 gap-3 py-3">
                         <div className="text-center">
-                          <div className="text-lg font-bold text-red-400">{session.heartRate || "—"}</div>
-                          <div className="text-xs text-zinc-500">Heart Rate</div>
+                          <div className="text-lg font-bold text-orange-400">{session.calories_burned}</div>
+                          <div className="text-xs text-zinc-500">Calories</div>
                         </div>
-                        {session.distance && (
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-blue-400">{session.distance}</div>
-                            <div className="text-xs text-zinc-500">km</div>
-                          </div>
-                        )}
                         <div className="text-center">
-                          <div className="text-lg font-bold text-emerald-400">{session.duration}</div>
-                          <div className="text-xs text-zinc-500">min</div>
+                          <div className="text-lg font-bold text-emerald-400">{session.duration_minutes}</div>
+                          <div className="text-xs text-zinc-500">Minutes</div>
                         </div>
                       </div>
                       {session.notes && <p className="text-sm text-zinc-400">{session.notes}</p>}
+                      <p className="text-xs text-zinc-500">{new Date(session.completed_at || session.date).toLocaleString()}</p>
                     </div>
                   </motion.div>
                 )}
@@ -241,21 +255,48 @@ function SportHistoryTab() {
 }
 
 function PerformanceTab() {
-  const sessions = (sportSessions as any[]) || [];
+  const { user } = useAuth();
+  const [sessions, setSessions] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    getWorkouts(user.id).then(setSessions).catch(console.error);
+  }, [user]);
+
   const sportCounts: Record<string, number> = {};
-  sessions.forEach((s: any) => { sportCounts[s.sport] = (sportCounts[s.sport] || 0) + 1; });
-  const barData = Object.entries(sportCounts).map(([name, sessions]) => ({ name, sessions }));
+  sessions.forEach((s: any) => { sportCounts[s.type] = (sportCounts[s.type] || 0) + 1; });
+  const barData = Object.entries(sportCounts).map(([name, count]) => ({ name, sessions: count }));
 
-  const radarData = [
-    { subject: "Endurance", value: 85 }, { subject: "Strength", value: 72 },
-    { subject: "Speed", value: 68 }, { subject: "Agility", value: 75 },
-    { subject: "Flexibility", value: 60 }, { subject: "Recovery", value: 80 },
-  ];
+  const totalCalories = sessions.reduce((s, w) => s + (w.calories_burned || 0), 0);
+  const totalMinutes = sessions.reduce((s, w) => s + (w.duration_minutes || 0), 0);
 
-  const records = (sportRecords as any[]) || [];
+  if (sessions.length === 0) {
+    return (
+      <Card className="p-12 text-center">
+        <TrendingUp className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
+        <h3 className="text-lg font-medium text-white mb-2">No performance data yet</h3>
+        <p className="text-zinc-400 text-sm">Complete sport sessions to see your performance analytics.</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-3xl font-bold text-orange-400">{totalCalories.toLocaleString()}</p>
+            <p className="text-xs text-zinc-500">Total Calories Burned</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-3xl font-bold text-emerald-400">{totalMinutes}</p>
+            <p className="text-xs text-zinc-500">Total Minutes</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-violet-400" /> Sessions by Sport</CardTitle></CardHeader>
         <CardContent>
@@ -271,102 +312,6 @@ function PerformanceTab() {
           </div>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Target className="h-4 w-4 text-violet-400" /> Performance Radar</CardTitle></CardHeader>
-        <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="#27272a" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: "#71717a", fontSize: 11 }} />
-                <Radar name="Performance" dataKey="value" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.2} strokeWidth={2} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Medal className="h-4 w-4 text-violet-400" /> Best Records</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {records.map((record: any, i: number) => (
-              <motion.div key={record.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg", sportColors[record.sport] || "from-gray-500 to-gray-600")}>
-                      {sportIcons[record.sport] || "🏃"}
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-white">{record.sport}</div>
-                      <div className="text-xs text-zinc-500">{record.date}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-violet-400">{record.record}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function LeaderboardTab() {
-  const leaders = (leaderboardData as any[]) || [];
-  const topThree = leaders.slice(0, 3);
-  const rest = leaders.slice(3);
-
-  return (
-    <div className="space-y-6">
-      <Card className="border-zinc-700/50 bg-gradient-to-br from-amber-500/10 to-yellow-500/10">
-        <CardContent className="p-6">
-          <div className="flex items-end justify-center gap-6">
-            {[1, 0, 2].map((idx) => {
-              const e = topThree[idx];
-              if (!e) return null;
-              const heights = ["h-24", "h-32", "h-20"];
-              const medalColors = ["text-amber-400", "text-zinc-300", "text-amber-600"];
-              return (
-                <div key={e.id} className="flex flex-col items-center">
-                  <div className="text-2xl mb-1">{e.avatar || "👤"}</div>
-                  <div className="text-xs font-medium text-white mb-1">{e.name}</div>
-                  <div className="text-xs text-zinc-400 mb-2">{e.score}</div>
-                  <div className={cn("w-16 rounded-t-xl bg-zinc-800 flex items-center justify-center", heights[idx])}>
-                    <Crown className={cn("h-6 w-6", medalColors[idx])} />
-                  </div>
-                  <div className="text-xs font-bold text-white mt-1">#{e.rank}</div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-2">
-        {rest.map((entry: any, i: number) => (
-          <motion.div key={entry.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}>
-            <Card>
-              <CardContent className="p-3 flex items-center gap-3">
-                <div className="w-8 text-center text-sm font-bold text-zinc-400">#{entry.rank}</div>
-                <div className="text-xl">{entry.avatar || "👤"}</div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-white">{entry.name}</div>
-                  <div className="text-xs text-zinc-500">Level {entry.level}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-violet-400">{entry.score}</div>
-                  <div className="text-xs text-zinc-500">pts</div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
     </div>
   );
 }

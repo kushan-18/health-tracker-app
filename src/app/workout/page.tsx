@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Modal } from "@/components/ui/modal";
-import { exercises, completedWorkouts, workoutPlanSample } from "@/lib/data";
+import { exercises, workoutPlanSample } from "@/lib/data";
+import { getWorkouts, addWorkout } from "@/lib/data-operations";
+import { useAuth } from "@/lib/auth-context";
 import type { Exercise, WorkoutSet, WorkoutExercise, CompletedWorkout, MuscleGroup } from "@/lib/types";
 import { cn, generateId, formatTime } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,6 +30,14 @@ const muscleGroupColors: Record<MuscleGroup, string> = {
 };
 
 function WorkoutPage() {
+  const { user } = useAuth();
+  const [completedWorkouts, setCompletedWorkouts] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    getWorkouts(user.id).then(setCompletedWorkouts).catch(console.error);
+  }, [user]);
+
   return (
     <AppLayout title="Workout">
       <Tabs defaultValue="active">
@@ -38,8 +48,8 @@ function WorkoutPage() {
           <TabsTrigger value="ai"><Sparkles className="h-4 w-4 mr-1.5" />AI Generator</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="active"><ActiveWorkoutTab /></TabsContent>
-        <TabsContent value="history"><HistoryTab /></TabsContent>
+        <TabsContent value="active"><ActiveWorkoutTab completedWorkouts={completedWorkouts} /></TabsContent>
+        <TabsContent value="history"><HistoryTab completedWorkouts={completedWorkouts} /></TabsContent>
         <TabsContent value="library"><LibraryTab /></TabsContent>
         <TabsContent value="ai"><AIGeneratorTab /></TabsContent>
       </Tabs>
@@ -47,7 +57,8 @@ function WorkoutPage() {
   );
 }
 
-function ActiveWorkoutTab() {
+function ActiveWorkoutTab({ completedWorkouts }: { completedWorkouts: any[] }) {
+  const { user } = useAuth();
   const [started, setStarted] = React.useState(false);
   const [elapsed, setElapsed] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
@@ -146,7 +157,21 @@ function ActiveWorkoutTab() {
     setWorkoutExercises((prev) => prev.filter((ex) => ex.id !== exerciseId));
   };
 
-  const finishWorkout = () => {
+  const finishWorkout = async () => {
+    if (user) {
+      try {
+        const totalCalories = Math.round(elapsed * 0.15);
+        await addWorkout(user.id, {
+          name: workoutName || "Workout",
+          type: "Strength",
+          duration_minutes: Math.round(elapsed / 60),
+          calories_burned: totalCalories,
+          exercises: workoutExercises.map((e) => ({ name: e.name, muscle: e.muscle })),
+          completed: true,
+          notes,
+        });
+      } catch (e) { console.error("Failed to save workout:", e); }
+    }
     setStarted(false);
     setElapsed(0);
     setWorkoutExercises([]);
@@ -184,18 +209,18 @@ function ActiveWorkoutTab() {
           <Card>
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-white">{completedWorkouts.length}</div>
-              <div className="text-xs text-zinc-400 mt-1">This Week</div>
+              <div className="text-xs text-zinc-400 mt-1">Total Workouts</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-white">{completedWorkouts.reduce((s, w) => s + w.exercises.reduce((vs, ex) => vs + ex.sets.reduce((ss, set) => ss + set.reps * set.weight, 0), 0), 0).toLocaleString()}</div>
+              <div className="text-2xl font-bold text-white">—</div>
               <div className="text-xs text-zinc-400 mt-1">Total Volume</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-white">{completedWorkouts.reduce((s, w) => s + w.caloriesBurned, 0)}</div>
+              <div className="text-2xl font-bold text-white">{completedWorkouts.reduce((s: number, w: any) => s + (w.calories_burned || 0), 0)}</div>
               <div className="text-xs text-zinc-400 mt-1">Calories</div>
             </CardContent>
           </Card>
@@ -383,7 +408,7 @@ function ActiveWorkoutTab() {
   );
 }
 
-function HistoryTab() {
+function HistoryTab({ completedWorkouts }: { completedWorkouts: any[] }) {
   const [filter, setFilter] = React.useState<string>("All");
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
 
@@ -428,13 +453,13 @@ function HistoryTab() {
                   </div>
                   <div>
                     <div className="font-medium text-white">{w.name}</div>
-                    <div className="text-xs text-zinc-400">{w.date} · {w.duration} min</div>
+                    <div className="text-xs text-zinc-400">{new Date(w.date).toLocaleDateString()} · {w.duration_minutes} min</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right hidden sm:block">
-                    <div className="text-sm font-medium text-violet-400">{w.exercises.reduce((vs, ex) => vs + ex.sets.reduce((ss, set) => ss + set.reps * set.weight, 0), 0).toLocaleString()} kg</div>
-                    <div className="text-xs text-zinc-500">{w.caloriesBurned} cal</div>
+                    <div className="text-sm font-medium text-violet-400">— kg</div>
+                    <div className="text-xs text-zinc-500">{w.calories_burned} cal</div>
                   </div>
                   {expandedId === w.id ? <ChevronUp className="h-4 w-4 text-zinc-400" /> : <ChevronDown className="h-4 w-4 text-zinc-400" />}
                 </div>
@@ -451,30 +476,30 @@ function HistoryTab() {
                     <div className="px-4 pb-4 border-t border-zinc-800">
                       <div className="grid grid-cols-3 gap-3 py-3">
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{w.duration}</div>
+                          <div className="text-lg font-bold text-white">{w.duration_minutes}</div>
                           <div className="text-xs text-zinc-500">Minutes</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{w.exercises.reduce((s, ex) => s + ex.sets.length, 0)}</div>
-                          <div className="text-xs text-zinc-500">Sets</div>
+                          <div className="text-lg font-bold text-white">{(w.exercises || []).length}</div>
+                          <div className="text-xs text-zinc-500">Exercises</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-white">{w.caloriesBurned}</div>
+                          <div className="text-lg font-bold text-white">{w.calories_burned}</div>
                           <div className="text-xs text-zinc-500">Calories</div>
                         </div>
                       </div>
                       <div className="space-y-2">
-                        {w.exercises.map((we) => (
-                          <div key={we.id} className="bg-zinc-800/50 rounded-lg p-3">
+                        {(w.exercises || []).map((we: any, i: number) => (
+                          <div key={i} className="bg-zinc-800/50 rounded-lg p-3">
                             <div className="text-sm font-medium text-white">{we.name}</div>
                             <div className="text-xs text-zinc-400 mt-1">
-                              {we.sets.length} sets · {we.sets.reduce((s, set) => s + set.reps, 0)} total reps
+                              {we.muscle || "—"}
                             </div>
                           </div>
                         ))}
                       </div>
                       {(() => {
-                        const muscleGroups = [...new Set(w.exercises.map((e) => e.muscle))];
+                        const muscleGroups = Array.from(new Set<string>((w.exercises || []).map((e: any) => e.muscle).filter(Boolean)));
                         return muscleGroups.length > 0 && (
                           <div className="flex gap-2 mt-3 flex-wrap">
                             {muscleGroups.map((mg) => (

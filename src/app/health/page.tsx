@@ -1,31 +1,20 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { healthMetrics, heartRateData, heartRateZones, hrvData, sleepData, sleepSummary, mentalHealthData, healthLogs } from "@/lib/data";
+import { getHealthMetrics, addHealthMetric } from "@/lib/data-operations";
+import { useAuth } from "@/lib/auth-context";
 import {
   Heart, Thermometer, Wind, Droplets, Activity, Moon,
-  Brain, Smile, Zap, Timer, Play, Pause, RotateCcw, Plus
+  Brain, Smile, Zap, Play, Pause, RotateCcw, Plus
 } from "lucide-react";
 
 const fadeIn = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
-
-const metricCards = [
-  { label: "Blood Pressure", value: "120/80", unit: "mmHg", icon: Activity, color: "text-rose-400", bg: "from-rose-500/20 to-rose-500/5" },
-  { label: "Blood Sugar", value: "95", unit: "mg/dL", icon: Droplets, color: "text-amber-400", bg: "from-amber-500/20 to-amber-500/5" },
-  { label: "SpO2", value: "98", unit: "%", icon: Wind, color: "text-cyan-400", bg: "from-cyan-500/20 to-cyan-500/5" },
-  { label: "Heart Rate", value: "68", unit: "bpm", icon: Heart, color: "text-red-400", bg: "from-red-500/20 to-red-500/5" },
-  { label: "Temperature", value: "98.4", unit: "°F", icon: Thermometer, color: "text-orange-400", bg: "from-orange-500/20 to-orange-500/5" },
-];
 
 const moodOptions = ["😔", "😐", "😊", "😄", "🤩"];
 const stressLevels = [
@@ -36,7 +25,22 @@ const stressLevels = [
   { level: 5, label: "Very High", color: "#ef4444" },
 ];
 
+const metricTypeConfig: Record<string, { icon: React.ElementType; color: string; bg: string; label: string; unit: string }> = {
+  blood_pressure: { icon: Activity, color: "text-rose-400", bg: "from-rose-500/20 to-rose-500/5", label: "Blood Pressure", unit: "mmHg" },
+  blood_sugar: { icon: Droplets, color: "text-amber-400", bg: "from-amber-500/20 to-amber-500/5", label: "Blood Sugar", unit: "mg/dL" },
+  spo2: { icon: Wind, color: "text-cyan-400", bg: "from-cyan-500/20 to-cyan-500/5", label: "SpO2", unit: "%" },
+  heart_rate: { icon: Heart, color: "text-red-400", bg: "from-red-500/20 to-red-500/5", label: "Heart Rate", unit: "bpm" },
+  temperature: { icon: Thermometer, color: "text-orange-400", bg: "from-orange-500/20 to-orange-500/5", label: "Temperature", unit: "°F" },
+};
+
 export default function HealthPage() {
+  const { user } = useAuth();
+  const [metrics, setMetrics] = useState<any[]>([]);
+  const [logType, setLogType] = useState("heart_rate");
+  const [logValue, setLogValue] = useState("");
+  const [logNotes, setLogNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const [selectedMood, setSelectedMood] = useState("😊");
   const [stressLevel, setStressLevel] = useState(2);
   const [energy, setEnergy] = useState(75);
@@ -48,6 +52,18 @@ export default function HealthPage() {
   const [meditationTime, setMeditationTime] = useState(0);
   const breathingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const meditationRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    getHealthMetrics(user.id).then(setMetrics).catch(console.error);
+  }, [user]);
+
+  useEffect(() => {
+    return () => {
+      if (breathingRef.current) clearInterval(breathingRef.current);
+      if (meditationRef.current) clearInterval(meditationRef.current);
+    };
+  }, []);
 
   const startBreathing = () => {
     if (breathingActive) {
@@ -91,25 +107,48 @@ export default function HealthPage() {
     if (meditationRef.current) clearInterval(meditationRef.current);
   };
 
-  useEffect(() => {
-    return () => {
-      if (breathingRef.current) clearInterval(breathingRef.current);
-      if (meditationRef.current) clearInterval(meditationRef.current);
-    };
-  }, []);
-
   const formatMeditationTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
 
-  const sleepBreakdown = [
-    { name: "Deep", value: sleepSummary.deep, color: "#6366f1" },
-    { name: "Light", value: sleepSummary.light, color: "#818cf8" },
-    { name: "REM", value: sleepSummary.rem, color: "#a78bfa" },
-    { name: "Awake", value: sleepSummary.awake, color: "#374151" },
-  ];
+  const handleSaveLog = async () => {
+    if (!user || !logValue.trim()) return;
+    setSaving(true);
+    try {
+      const entry = await addHealthMetric(user.id, {
+        type: logType,
+        value: logValue.trim(),
+        unit: metricTypeConfig[logType]?.unit || "",
+      });
+      setMetrics((prev) => [entry, ...prev]);
+      setLogValue("");
+      setLogNotes("");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const groupedMetrics = React.useMemo(() => {
+    const map = new Map<string, any[]>();
+    metrics.forEach((m) => {
+      const arr = map.get(m.type) || [];
+      arr.push(m);
+      map.set(m.type, arr);
+    });
+    return map;
+  }, [metrics]);
+
+  const heartRateChartData = React.useMemo(() => {
+    const hrMetrics = groupedMetrics.get("heart_rate") || [];
+    return hrMetrics.slice(0, 7).reverse().map((m) => ({
+      date: new Date(m.recorded_at).toLocaleDateString("en-US", { weekday: "short" }),
+      value: Number(m.value),
+    }));
+  }, [groupedMetrics]);
 
   return (
     <AppLayout title="Health Tracking">
@@ -124,212 +163,121 @@ export default function HealthPage() {
 
         <TabsContent value="metrics">
           <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {metricCards.map((metric, i) => (
-                <motion.div key={metric.label} variants={fadeIn}>
-                  <Card className={`bg-gradient-to-br ${metric.bg} border-zinc-800`}>
-                    <CardContent className="p-4">
-                      <metric.icon className={`h-6 w-6 ${metric.color} mb-3`} />
-                      <p className="text-xs text-zinc-400 mb-1">{metric.label}</p>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-bold text-zinc-100">{metric.value}</span>
-                        <span className="text-xs text-zinc-500">{metric.unit}</span>
+            {metrics.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {Array.from(groupedMetrics.entries()).map(([type, entries]) => {
+                  const latest = entries[0];
+                  const cfg = metricTypeConfig[type] || { icon: Activity, color: "text-zinc-400", bg: "from-zinc-500/20 to-zinc-500/5", label: type.replace("_", " "), unit: latest?.unit || "" };
+                  const Icon = cfg.icon;
+                  return (
+                    <motion.div key={type} variants={fadeIn}>
+                      <Card className={`bg-gradient-to-br ${cfg.bg} border-zinc-800`}>
+                        <CardContent className="p-4">
+                          <Icon className={`h-6 w-6 ${cfg.color} mb-3`} />
+                          <p className="text-xs text-zinc-400 mb-1 capitalize">{cfg.label}</p>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-bold text-zinc-100">{latest.value}</span>
+                            <span className="text-xs text-zinc-500">{cfg.unit}</span>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 mt-1">{entries.length} total readings</p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <Card className="p-12 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
+                  <Activity className="w-8 h-8 text-rose-400" />
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">No health metrics yet</h3>
+                <p className="text-zinc-400 text-sm mb-6">Log your first health reading to see your vitals here.</p>
+              </Card>
+            )}
+
+            {heartRateChartData.length > 0 && (
+              <div className="grid md:grid-cols-2 gap-6">
+                <motion.div variants={fadeIn}>
+                  <Card>
+                    <CardHeader><CardTitle>Heart Rate Trend</CardTitle></CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={250}>
+                        <LineChart data={heartRateChartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                          <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
+                          <YAxis stroke="#71717a" fontSize={12} />
+                          <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "12px" }} />
+                          <Legend />
+                          <Line type="monotone" dataKey="value" stroke="#ef4444" strokeWidth={2} name="Heart Rate (bpm)" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div variants={fadeIn}>
+                  <Card>
+                    <CardHeader><CardTitle>Recent Readings</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
+                        {metrics.slice(0, 10).map((m) => {
+                          const cfg = metricTypeConfig[m.type] || { icon: Activity, color: "text-violet-400" };
+                          const Icon = cfg.icon;
+                          return (
+                            <div key={m.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-800/40 p-3">
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                                  <Icon className={`h-4 w-4 ${cfg.color}`} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-zinc-200 capitalize">{m.type.replace("_", " ")}</p>
+                                  <p className="text-xs text-zinc-500">{new Date(m.recorded_at).toLocaleString()}</p>
+                                </div>
+                              </div>
+                              <p className="text-sm font-medium text-zinc-200">
+                                {m.value} {m.unit}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
                 </motion.div>
-              ))}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <motion.div variants={fadeIn}>
-                <Card>
-                  <CardHeader><CardTitle>Weekly Vitals</CardTitle></CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <LineChart data={heartRateData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                        <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
-                        <YAxis stroke="#71717a" fontSize={12} />
-                        <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "12px" }} />
-                        <Legend />
-                        <Line type="monotone" dataKey="resting" stroke="#8b5cf6" strokeWidth={2} name="Resting" />
-                        <Line type="monotone" dataKey="active" stroke="#06b6d4" strokeWidth={2} name="Active" />
-                        <Line type="monotone" dataKey="peak" stroke="#ef4444" strokeWidth={2} name="Peak" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div variants={fadeIn}>
-                <Card>
-                  <CardHeader><CardTitle>Recent Readings</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
-                      {healthMetrics.map((m) => (
-                        <div key={m.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-800/40 p-3">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                              <Activity className="h-4 w-4 text-violet-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-zinc-200 capitalize">{m.type.replace("_", " ")}</p>
-                              <p className="text-xs text-zinc-500">{new Date(m.date).toLocaleString()}</p>
-                            </div>
-                          </div>
-                          <p className="text-sm font-medium text-zinc-200">
-                            {m.value} {m.unit}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
+              </div>
+            )}
           </motion.div>
         </TabsContent>
 
         <TabsContent value="heart">
-          <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: "Resting HR", value: 68, unit: "bpm", icon: Heart, color: "text-red-400" },
-                { label: "Max HR", value: 165, unit: "bpm", icon: Activity, color: "text-orange-400" },
-                { label: "Average HR", value: 82, unit: "bpm", icon: Zap, color: "text-amber-400" },
-                { label: "HRV", value: 42, unit: "ms", icon: Heart, color: "text-violet-400" },
-              ].map((item) => (
-                <motion.div key={item.label} variants={fadeIn}>
-                  <Card>
-                    <CardContent className="p-4">
-                      <item.icon className={`h-5 w-5 ${item.color} mb-2`} />
-                      <p className="text-xs text-zinc-400">{item.label}</p>
-                      <p className="text-2xl font-bold text-zinc-100">{item.value} <span className="text-xs text-zinc-500">{item.unit}</span></p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-6">
-              <motion.div variants={fadeIn}>
-                <Card>
-                  <CardHeader><CardTitle>Heart Rate Zones</CardTitle></CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={heartRateZones}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                        <XAxis dataKey="name" stroke="#71717a" fontSize={12} />
-                        <YAxis stroke="#71717a" fontSize={12} />
-                        <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "12px" }} />
-                        <Bar dataKey="minutes" radius={[6, 6, 0, 0]}>
-                          {heartRateZones.map((entry, i) => (
-                            <motion.rect key={i} fill={entry.color} initial={{ height: 0 }} animate={{ height: "auto" }} transition={{ delay: i * 0.1 }} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div variants={fadeIn}>
-                <Card>
-                  <CardHeader><CardTitle>Daily Heart Rate</CardTitle></CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
-                       <AreaChart data={heartRateData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                        <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
-                        <YAxis stroke="#71717a" fontSize={12} />
-                        <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "12px" }} />
-                        <Area type="monotone" dataKey="peak" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={2} />
-                        <Area type="monotone" dataKey="active" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} strokeWidth={2} />
-                        <Area type="monotone" dataKey="resting" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.1} strokeWidth={2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div variants={fadeIn} className="lg:col-span-2">
-                <Card>
-                  <CardHeader><CardTitle>HRV Trend</CardTitle></CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <LineChart data={hrvData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                        <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
-                        <YAxis domain={[30, 65]} stroke="#71717a" fontSize={12} />
-                        <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "12px" }} />
-                        <Line type="monotone" dataKey="hrv" stroke="#06b6d4" strokeWidth={3} dot={{ fill: "#06b6d4", r: 5 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-          </motion.div>
+          <div className="space-y-6">
+            <Card className="p-12 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                <Heart className="w-8 h-8 text-red-400" />
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">Heart data requires a wearable</h3>
+              <p className="text-zinc-400 text-sm mb-4">Connect a smartwatch or heart rate monitor to track heart rate zones, HRV, and continuous monitoring.</p>
+              {(groupedMetrics.get("heart_rate") || []).length > 0 && (
+                <p className="text-xs text-zinc-500">You have {groupedMetrics.get("heart_rate")!.length} manual heart rate logs in Metrics.</p>
+              )}
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="sleep">
-          <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6">
-            <div className="grid md:grid-cols-3 gap-6">
-              <motion.div variants={fadeIn}>
-                <Card className="border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-transparent">
-                  <CardContent className="p-6 flex flex-col items-center justify-center h-full">
-                    <Moon className="h-10 w-10 text-indigo-400 mb-4" />
-                    <p className="text-sm text-zinc-400 mb-1">Sleep Score</p>
-                    <p className="text-5xl font-bold text-zinc-100">8.5</p>
-                    <p className="text-sm text-zinc-500">/ 10</p>
-                    <div className="w-full mt-4">
-                      <Progress value={85} />
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div variants={fadeIn}>
-                <Card className="border-indigo-500/30">
-                  <CardHeader><CardTitle>Sleep Stages</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {sleepBreakdown.map((stage) => (
-                        <div key={stage.name}>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm text-zinc-400">{stage.name}</span>
-                            <span className="text-sm font-medium text-zinc-200">{stage.value}h</span>
-                          </div>
-                          <div className="h-2 w-full rounded-full bg-zinc-800">
-                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(stage.value / 7.5) * 100}%`, backgroundColor: stage.color }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-zinc-500 mt-4">Total: 7.5 hours</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div variants={fadeIn}>
-                <Card className="border-indigo-500/30">
-                  <CardHeader><CardTitle>Weekly Sleep</CardTitle></CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <BarChart data={sleepData.slice(0, 7)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                        <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
-                        <YAxis domain={[6, 9]} stroke="#71717a" fontSize={12} />
-                        <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "12px" }} />
-                        <Bar dataKey="score" fill="#6366f1" radius={[6, 6, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-          </motion.div>
+          <div className="space-y-6">
+            <Card className="p-12 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mx-auto mb-4">
+                <Moon className="w-8 h-8 text-indigo-400" />
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">No sleep data yet</h3>
+              <p className="text-zinc-400 text-sm mb-4">Connect a wearable or log your sleep manually to track sleep stages and quality.</p>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Plus className="h-4 w-4" /> Log Sleep Manually
+              </Button>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="mental">
@@ -341,10 +289,7 @@ export default function HealthPage() {
                   <CardContent>
                     <div className="flex items-center gap-4 mb-4">
                       <input
-                        type="range"
-                        min={1}
-                        max={5}
-                        value={stressLevel}
+                        type="range" min={1} max={5} value={stressLevel}
                         onChange={(e) => setStressLevel(Number(e.target.value))}
                         className="flex-1 h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-violet-500"
                       />
@@ -372,8 +317,7 @@ export default function HealthPage() {
                     <div className="flex justify-center gap-4">
                       {moodOptions.map((mood) => (
                         <button
-                          key={mood}
-                          onClick={() => setSelectedMood(mood)}
+                          key={mood} onClick={() => setSelectedMood(mood)}
                           className={`text-3xl p-3 rounded-xl transition-all duration-200 ${selectedMood === mood ? "bg-violet-500/20 scale-110 ring-2 ring-violet-500" : "hover:bg-zinc-800"}`}
                         >
                           {mood}
@@ -388,11 +332,7 @@ export default function HealthPage() {
                 <Card>
                   <CardHeader><CardTitle>Energy Level</CardTitle></CardHeader>
                   <CardContent>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={energy}
+                    <input type="range" min={0} max={100} value={energy}
                       onChange={(e) => setEnergy(Number(e.target.value))}
                       className="w-full h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-amber-500"
                     />
@@ -409,11 +349,7 @@ export default function HealthPage() {
                 <Card>
                   <CardHeader><CardTitle>Recovery Score</CardTitle></CardHeader>
                   <CardContent>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={recovery}
+                    <input type="range" min={0} max={100} value={recovery}
                       onChange={(e) => setRecovery(Number(e.target.value))}
                       className="w-full h-2 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-emerald-500"
                     />
@@ -432,8 +368,7 @@ export default function HealthPage() {
                 <Card className="border-cyan-500/30">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Wind className="h-5 w-5 text-cyan-400" />
-                      Breathing Exercise
+                      <Wind className="h-5 w-5 text-cyan-400" /> Breathing Exercise
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-col items-center">
@@ -465,8 +400,7 @@ export default function HealthPage() {
                 <Card className="border-violet-500/30">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-violet-400" />
-                      Meditation Timer
+                      <Brain className="h-5 w-5 text-violet-400" /> Meditation Timer
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-col items-center">
@@ -497,30 +431,43 @@ export default function HealthPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Quick Log</CardTitle>
-                  <Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> Add</Button>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div>
                       <label className="text-xs text-zinc-400 mb-1 block">Type</label>
-                      <select className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
-                        <option>Blood Pressure</option>
-                        <option>Blood Sugar</option>
-                        <option>Heart Rate</option>
-                        <option>Sleep</option>
-                        <option>Mood</option>
-                        <option>Weight</option>
+                      <select
+                        value={logType}
+                        onChange={(e) => setLogType(e.target.value)}
+                        className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                      >
+                        <option value="heart_rate">Heart Rate</option>
+                        <option value="blood_pressure">Blood Pressure</option>
+                        <option value="blood_sugar">Blood Sugar</option>
+                        <option value="spo2">SpO2</option>
+                        <option value="temperature">Temperature</option>
+                        <option value="weight">Weight</option>
                       </select>
                     </div>
                     <div>
                       <label className="text-xs text-zinc-400 mb-1 block">Value</label>
-                      <input type="text" className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600" placeholder="Enter value..." />
+                      <input
+                        type="text" value={logValue} onChange={(e) => setLogValue(e.target.value)}
+                        className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600"
+                        placeholder="e.g. 72, 120/80, 95..."
+                      />
                     </div>
                     <div>
                       <label className="text-xs text-zinc-400 mb-1 block">Notes</label>
-                      <textarea className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600" placeholder="Optional notes..." rows={3} />
+                      <textarea
+                        value={logNotes} onChange={(e) => setLogNotes(e.target.value)}
+                        className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600"
+                        placeholder="Optional notes..." rows={3}
+                      />
                     </div>
-                    <Button className="w-full">Save Entry</Button>
+                    <Button onClick={handleSaveLog} disabled={saving || !logValue.trim()} className="w-full">
+                      {saving ? "Saving..." : "Save Entry"}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -530,18 +477,28 @@ export default function HealthPage() {
               <Card className="h-full">
                 <CardHeader><CardTitle>History</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                    {healthLogs.map((log) => (
-                      <div key={log.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-800/40 p-3 hover:bg-zinc-800/60 transition-colors">
-                        <div>
-                          <p className="text-sm font-medium text-zinc-200 capitalize">{log.type.replace("_", " ")}</p>
-                          <p className="text-xs text-zinc-500">{new Date(log.date).toLocaleString()}</p>
-                          {log.notes && <p className="text-xs text-zinc-500 mt-1">{log.notes}</p>}
-                        </div>
-                        <p className="text-sm font-medium text-violet-400">{log.value}</p>
-                      </div>
-                    ))}
-                  </div>
+                  {metrics.length > 0 ? (
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                      {metrics.map((m) => {
+                        const cfg = metricTypeConfig[m.type] || { icon: Activity, color: "text-violet-400" };
+                        const Icon = cfg.icon;
+                        return (
+                          <div key={m.id} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-800/40 p-3 hover:bg-zinc-800/60 transition-colors">
+                            <div>
+                              <p className="text-sm font-medium text-zinc-200 capitalize">{m.type.replace("_", " ")}</p>
+                              <p className="text-xs text-zinc-500">{new Date(m.recorded_at).toLocaleString()}</p>
+                            </div>
+                            <p className="text-sm font-medium text-violet-400">{m.value} {m.unit}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Activity className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
+                      <p className="text-sm text-zinc-400">No entries yet. Log your first reading above.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>

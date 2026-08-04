@@ -41,9 +41,9 @@ const testimonials = [
 ];
 
 const pricing = [
-  { name: "Free", price: "0", period: "forever", desc: "Perfect for getting started", features: ["Basic health tracking", "AI chat (5 msgs/day)", "1 workout plan", "Community access"], cta: "Get Started", popular: false },
-  { name: "Pro", price: "19", period: "month", desc: "For serious health goals", features: ["Everything in Free", "Unlimited AI coaching", "Advanced nutrition AI", "Unlimited workouts", "Sleep & recovery tracking", "Priority support"], cta: "Start Pro Trial", popular: true },
-  { name: "Elite", price: "39", period: "month", desc: "Complete health optimization", features: ["Everything in Pro", "Sports analytics", "Body composition AI", "Medical report analysis", "Custom AI models", "1-on-1 coaching sessions", "API access"], cta: "Go Elite", popular: false },
+  { name: "Free", price: "₹0", period: "forever", desc: "Perfect for getting started", features: ["Basic health tracking", "AI chat (5 msgs/day)", "1 workout plan", "Community access"], cta: "Get Started", popular: false },
+  { name: "Pro", price: "₹399", period: "month", desc: "For serious health goals", features: ["Everything in Free", "Unlimited AI coaching", "Advanced nutrition AI", "Unlimited workouts", "Sleep & recovery tracking", "Priority support"], cta: "Start Pro Trial", popular: true },
+  { name: "Elite", price: "₹799", period: "month", desc: "Complete health optimization", features: ["Everything in Pro", "Sports analytics", "Body composition AI", "Medical report analysis", "Custom AI models", "1-on-1 coaching sessions", "API access"], cta: "Go Elite", popular: false },
 ];
 
 const faqs = [
@@ -226,18 +226,6 @@ export default function LandingPage() {
           </div>
         </div>
       </motion.section>
-
-      {/* Logos */}
-      <section className="py-12 border-y border-white/5">
-        <div className="max-w-7xl mx-auto px-4">
-          <p className="text-center text-xs text-white/30 mb-6 uppercase tracking-widest">Trusted by health enthusiasts worldwide</p>
-          <div className="flex justify-center items-center gap-8 md:gap-16 opacity-30">
-            {["FitTech", "HealthPro", "MedAI", "Wellness+", "BioTrack"].map((name) => (
-              <span key={name} className="text-sm font-semibold tracking-wider">{name}</span>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Features */}
       <section id="features" className="py-24 px-4 relative">
@@ -512,7 +500,7 @@ export default function LandingPage() {
                 { rank: 1, name: "Alex Rivera", points: "12,450", avatar: "AR", badge: "🥇" },
                 { rank: 2, name: "Jordan Kim", points: "11,280", avatar: "JK", badge: "🥈" },
                 { rank: 3, name: "Sam Chen", points: "10,920", avatar: "SC", badge: "🥉" },
-                { rank: 4, name: "Taylor Swift", points: "9,840", avatar: "TS", badge: "" },
+                { rank: 4, name: "Priya Nair", points: "9,840", avatar: "PN", badge: "" },
                 { rank: 5, name: "Morgan Lee", points: "9,120", avatar: "ML", badge: "" },
               ].map((u) => (
                 <div key={u.rank} className="flex items-center gap-4 glass rounded-xl px-4 py-3">
@@ -534,8 +522,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-emerald-400 mb-4"><Star className="w-3 h-3" /> Testimonials</div>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Loved by <span className="gradient-text">thousands</span></h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">What users are <span className="gradient-text">saying</span></h2>
             <p className="text-white/40 max-w-2xl mx-auto">See what our users have to say about their VitalX AI experience.</p>
+            <p className="text-xs text-white/25 mt-3">Illustrative examples — real user stories coming soon</p>
           </motion.div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {testimonials.map((t) => (
@@ -631,7 +620,7 @@ export default function LandingPage() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[80px]" />
           <div className="relative z-10">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Ready to transform your health?</h2>
-            <p className="text-white/40 mb-8 max-w-xl mx-auto">Join over 100,000 people who are already on their journey to becoming the healthiest version of themselves.</p>
+            <p className="text-white/40 mb-8 max-w-xl mx-auto">Join people already on their journey to a healthier life. Start your transformation today.</p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link href="/auth/register" className="inline-flex items-center gap-2 bg-white text-black px-8 py-3.5 rounded-xl font-medium hover:bg-white/90 transition-all shadow-lg shadow-white/10">
                 Start Free Trial <ArrowRight className="w-4 h-4" />
@@ -656,15 +645,21 @@ export default function LandingPage() {
               <p className="text-sm text-white/30 leading-relaxed">Your personal AI health coach. Optimize nutrition, fitness, and wellness with the power of artificial intelligence.</p>
             </div>
             {[
-              { title: "Product", links: ["Features", "Pricing", "Integrations", "API"] },
-              { title: "Company", links: ["About", "Blog", "Careers", "Press"] },
-              { title: "Support", links: ["Help Center", "Contact", "Privacy", "Terms"] },
+              { title: "Product", links: [{ text: "Features", href: "#features" }, { text: "Pricing", href: "#pricing" }, { text: "Integrations", href: "#features" }, { text: "API", href: "#features" }] },
+              { title: "Company", links: [{ text: "About", href: "#features" }, { text: "Blog", href: "#" }, { text: "Careers", href: "#" }, { text: "Press", href: "#" }] },
+              { title: "Support", links: [{ text: "Help Center", href: "#" }, { text: "Contact", href: "#" }, { text: "Privacy", href: "/privacy" }, { text: "Terms", href: "/terms" }] },
             ].map((col) => (
               <div key={col.title}>
                 <h4 className="font-semibold text-sm mb-4">{col.title}</h4>
                 <ul className="space-y-2.5">
                   {col.links.map((link) => (
-                    <li key={link}><a href="#" className="text-sm text-white/30 hover:text-white/60 transition-colors">{link}</a></li>
+                    <li key={link.text}>
+                      {link.href.startsWith("/") ? (
+                        <Link href={link.href} className="text-sm text-white/30 hover:text-white/60 transition-colors">{link.text}</Link>
+                      ) : (
+                        <a href={link.href} className="text-sm text-white/30 hover:text-white/60 transition-colors">{link.text}</a>
+                      )}
+                    </li>
                   ))}
                 </ul>
               </div>

@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronLeft, ChevronRight, Check, User, Target, Activity, 
-  Apple, Dumbbell, Moon, Stethoscope, Sparkles, Heart
+  Apple, Dumbbell, Moon, Stethoscope, Sparkles, Heart, Loader2
 } from 'lucide-react';
-import { useStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth-context';
+import { updateProfile } from '@/lib/data-operations';
 
 const steps = [
   { title: 'Basic Info', icon: User, description: 'Tell us about yourself' },
@@ -50,6 +52,9 @@ const medicalConditions = [
 
 export default function ProfileSetupPage() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     age: '', gender: '', height: '', weight: '',
     targetWeight: '', goal: '',
@@ -57,7 +62,6 @@ export default function ProfileSetupPage() {
     workoutExperience: '', medicalConditions: [] as string[],
     sleepHours: '', targetCalories: '',
   });
-  const socialLogin = useStore((s) => s.socialLogin);
 
   const update = (field: string, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -80,9 +84,30 @@ export default function ProfileSetupPage() {
     if (currentStep > 0) setCurrentStep((s) => s - 1);
   };
 
-  const complete = () => {
-    socialLogin('email', 'User', 'user@vitalxai.com');
-    window.location.href = '/dashboard';
+  const complete = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      await updateProfile(user.id, {
+        age: Number(formData.age) || 25,
+        gender: formData.gender || 'Male',
+        height: Number(formData.height) || 175,
+        weight: Number(formData.weight) || 70,
+        body_fat: 18,
+        fitness_goal: formData.goal || 'General Fitness',
+        activity_level: formData.activityLevel || 'Moderate',
+        diet_preference: formData.dietPreference || 'No Preference',
+        workout_experience: formData.workoutExperience || 'Intermediate',
+        medical_conditions: formData.medicalConditions,
+        target_weight: Number(formData.targetWeight) || Number(formData.weight) || 70,
+        target_calories: Number(formData.targetCalories) || 2200,
+      });
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err) {
+      console.error('Profile save error:', err);
+    }
+    setIsSaving(false);
   };
 
   const progress = ((currentStep + 1) / steps.length) * 100;
@@ -386,10 +411,11 @@ export default function ProfileSetupPage() {
             ) : (
               <button
                 onClick={complete}
-                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl text-white font-medium hover:shadow-lg hover:shadow-green-500/25 transition-all active:scale-95"
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl text-white font-medium hover:shadow-lg hover:shadow-green-500/25 transition-all active:scale-95 disabled:opacity-50"
               >
-                <Check className="w-4 h-4" />
-                Complete Setup
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {isSaving ? 'Saving...' : 'Complete Setup'}
               </button>
             )}
           </div>

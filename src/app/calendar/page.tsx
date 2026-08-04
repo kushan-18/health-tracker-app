@@ -1,10 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { calendarEvents } from "@/lib/data";
+import { getWorkouts, getMeals, getHealthMetrics } from "@/lib/data-operations";
+import { useAuth } from "@/lib/auth-context";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const fadeIn = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
@@ -13,14 +14,48 @@ const dotColors: Record<string, string> = {
   workout: "bg-emerald-500",
   meal: "bg-blue-500",
   health: "bg-purple-500",
-  sport: "bg-orange-500",
 };
 
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+type CalEvent = { date: string; type: string; title: string };
+
 export default function CalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 6, 23));
+  const { user } = useAuth();
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [workouts, setWorkouts] = useState<any[]>([]);
+  const [meals, setMeals] = useState<any[]>([]);
+  const [healthMetrics, setHealthMetrics] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    Promise.all([
+      getWorkouts(user.id).catch(() => []),
+      getMeals(user.id).catch(() => []),
+      getHealthMetrics(user.id).catch(() => []),
+    ]).then(([w, m, h]) => {
+      setWorkouts(w);
+      setMeals(m);
+      setHealthMetrics(h);
+    });
+  }, [user]);
+
+  const calendarEvents: CalEvent[] = useMemo(() => {
+    const events: CalEvent[] = [];
+    workouts.forEach((w) => {
+      const d = w.completed_at || w.date;
+      if (d) events.push({ date: new Date(d).toISOString().split("T")[0], type: "workout", title: w.name || w.type });
+    });
+    meals.forEach((m) => {
+      if (m.logged_at) events.push({ date: new Date(m.logged_at).toISOString().split("T")[0], type: "meal", title: m.name });
+    });
+    healthMetrics.forEach((h) => {
+      if (h.recorded_at) events.push({ date: new Date(h.recorded_at).toISOString().split("T")[0], type: "health", title: h.type.replace("_", " ") });
+    });
+    return events;
+  }, [workouts, meals, healthMetrics]);
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
@@ -87,7 +122,7 @@ export default function CalendarPage() {
                       {events.length > 0 && (
                         <div className="flex gap-1 mt-1 flex-wrap">
                           {events.map((e, j) => (
-                            <div key={j} className={`h-1.5 w-1.5 rounded-full ${dotColors[e.type]}`} />
+                            <div key={j} className={`h-1.5 w-1.5 rounded-full ${dotColors[e.type] || "bg-zinc-500"}`} />
                           ))}
                         </div>
                       )}
@@ -120,7 +155,7 @@ export default function CalendarPage() {
                 <div className="space-y-3">
                   {selectedDayEvents.map((event, i) => (
                     <div key={i} className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-800/40 p-3">
-                      <div className={`h-3 w-3 rounded-full ${dotColors[event.type]}`} />
+                      <div className={`h-3 w-3 rounded-full ${dotColors[event.type] || "bg-zinc-500"}`} />
                       <div>
                         <p className="text-sm font-medium text-zinc-200">{event.title}</p>
                         <p className="text-xs text-zinc-500 capitalize">{event.type}</p>

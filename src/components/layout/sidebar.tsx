@@ -22,7 +22,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth-context";
+import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui/avatar";
+
+const supabase = createClient();
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -44,10 +48,11 @@ interface SidebarProps {
 
 function Sidebar({ isMobile }: SidebarProps) {
   const pathname = usePathname();
-  const { user, sidebarOpen, setSidebarOpen, logout } = useStore();
+  const { sidebarOpen, setSidebarOpen } = useStore();
+  const { user } = useAuth();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     window.location.href = "/";
   };
 
@@ -99,16 +104,16 @@ function Sidebar({ isMobile }: SidebarProps) {
         <div className="flex items-center gap-3 rounded-xl px-3 py-2">
           <Avatar
             size="sm"
-            fallback={user?.name?.charAt(0) || "R"}
+            fallback={user?.user_metadata?.name?.charAt(0) || "U"}
             online
           />
           {!isMobile && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                {user?.name || "Rahul Sharma"}
+                {user?.user_metadata?.name || "User"}
               </p>
               <p className="text-xs text-zinc-400 truncate">
-                {user?.email || "rahul@email.com"}
+                {user?.email || ""}
               </p>
             </div>
           )}

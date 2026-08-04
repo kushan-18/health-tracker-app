@@ -15,7 +15,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth-context";
+import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/ui/avatar";
+
+const supabase = createClient();
 
 interface NavbarProps {
   title: string;
@@ -53,11 +57,11 @@ const notifications = [
 ];
 
 function Navbar({ title }: NavbarProps) {
-  const { theme, toggleTheme, user, streaks, level, coins } = useStore();
+  const { theme, toggleTheme, streaks, level, coins } = useStore();
+  const { user } = useAuth();
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showProfile, setShowProfile] = React.useState(false);
   const [notifState, setNotifState] = React.useState(notifications);
-  const { logout } = useStore();
 
   const unreadCount = notifState.filter((n) => !n.read).length;
 
@@ -65,8 +69,8 @@ function Navbar({ title }: NavbarProps) {
     setNotifState((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     window.location.href = "/";
   };
 
@@ -181,7 +185,7 @@ function Navbar({ title }: NavbarProps) {
             >
               <Avatar
                 size="sm"
-                fallback={user?.name?.charAt(0) || "R"}
+                fallback={user?.user_metadata?.name?.charAt(0) || "U"}
                 online
               />
               <ChevronDown className="h-3.5 w-3.5 text-zinc-400 hidden sm:block" />
@@ -197,10 +201,10 @@ function Navbar({ title }: NavbarProps) {
                 >
                   <div className="border-b border-white/5 px-4 py-3">
                     <p className="text-sm font-semibold text-white">
-                      {user?.name || "Rahul Sharma"}
+                      {user?.user_metadata?.name || "User"}
                     </p>
                     <p className="text-xs text-zinc-400">
-                      {user?.email || "rahul@email.com"}
+                      {user?.email || ""}
                     </p>
                     <div className="mt-2 flex items-center gap-3 text-xs">
                       <span className="text-purple-400">Lv. {level}</span>

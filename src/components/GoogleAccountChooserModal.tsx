@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { User, ChevronDown, Eye, EyeOff, ArrowLeft, MinusCircle, Check } from 'lucide-react'
-import { useStore } from '@/lib/store'
 
 export interface GoogleAccount {
   name: string
@@ -52,7 +51,6 @@ export default function GoogleAccountChooserModal({
   onSelectAccount,
   appName = 'vitalx-ai',
 }: GoogleAccountChooserModalProps) {
-  const { user } = useStore()
   const [accounts, setAccounts] = useState<GoogleAccount[]>(defaultGoogleAccounts)
   const [googleStep, setGoogleStep] = useState<'choose' | 'password' | 'custom'>('choose')
   const [isRemoving, setIsRemoving] = useState(false)
@@ -64,36 +62,18 @@ export default function GoogleAccountChooserModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  // Load saved accounts from localStorage & sync with logged in user
+  // Load saved accounts from localStorage
   useEffect(() => {
     if (!isOpen || typeof window === 'undefined') return
 
     try {
       const saved = localStorage.getItem('vitalx_google_accounts')
-      let list: GoogleAccount[] = saved ? JSON.parse(saved) : defaultGoogleAccounts
-
-      // If store user exists, ensure they are in the accounts list
-      if (user && user.email) {
-        const exists = list.some((a) => a.email.toLowerCase() === user.email?.toLowerCase())
-        if (!exists) {
-          list = [
-            {
-              name: user.name || '',
-              email: user.email,
-              initial: (user.name?.[0] || user.email[0] || 'U').toUpperCase(),
-              color: getAvatarColor(user.email),
-              avatar: user.avatar,
-            },
-            ...list,
-          ]
-        }
-      }
-
+      const list: GoogleAccount[] = saved ? JSON.parse(saved) : defaultGoogleAccounts
       setAccounts(list)
     } catch (e) {
       setAccounts(defaultGoogleAccounts)
     }
-  }, [isOpen, user])
+  }, [isOpen])
 
   const saveAccountsToStorage = (updated: GoogleAccount[]) => {
     setAccounts(updated)

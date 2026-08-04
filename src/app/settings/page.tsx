@@ -6,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth-context";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
@@ -17,7 +21,8 @@ const fadeIn = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, 
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
 
 export default function SettingsPage() {
-  const { theme, toggleTheme, user } = useStore();
+  const { theme, toggleTheme } = useStore();
+  const { user } = useAuth();
   const [notifications, setNotifications] = React.useState({ workout: true, meals: true, water: true, social: false, news: false });
   const [units, setUnits] = React.useState({ weight: "kg", height: "cm", distance: "km" });
   const [privacy, setPrivacy] = React.useState({ profileVisibility: "friends", activitySharing: true, showOnLeaderboard: true });
@@ -177,7 +182,7 @@ export default function SettingsPage() {
         </motion.div>
 
         <motion.div variants={fadeIn}>
-          <Button variant="destructive" className="w-full gap-2"><LogOut className="h-4 w-4" /> Sign Out</Button>
+          <Button variant="destructive" className="w-full gap-2" onClick={async () => { await supabase.auth.signOut(); window.location.href = "/auth/login"; }}><LogOut className="h-4 w-4" /> Sign Out</Button>
         </motion.div>
       </motion.div>
     </AppLayout>
