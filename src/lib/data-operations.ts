@@ -266,11 +266,14 @@ export async function getTodaySummary(userId: string) {
       .limit(1),
   ]);
 
-  const totalCalories = meals.data?.reduce((s: number, m: any) => s + (m.calories || 0), 0) ?? 0;
-  const totalProtein = meals.data?.reduce((s: number, m: any) => s + (m.protein_g || 0), 0) ?? 0;
-  const totalCarbs = meals.data?.reduce((s: number, m: any) => s + (m.carbs_g || 0), 0) ?? 0;
-  const totalFat = meals.data?.reduce((s: number, m: any) => s + (m.fat_g || 0), 0) ?? 0;
-  const totalWater = waterLogs.data?.reduce((s: number, w: any) => s + (w.glasses || 0), 0) ?? 0;
+  interface MealRow { calories?: number; protein_g?: number; carbs_g?: number; fat_g?: number }
+  interface WaterRow { glasses?: number }
+
+  const totalCalories = meals.data?.reduce((s: number, m: MealRow) => s + (m.calories || 0), 0) ?? 0;
+  const totalProtein = meals.data?.reduce((s: number, m: MealRow) => s + (m.protein_g || 0), 0) ?? 0;
+  const totalCarbs = meals.data?.reduce((s: number, m: MealRow) => s + (m.carbs_g || 0), 0) ?? 0;
+  const totalFat = meals.data?.reduce((s: number, m: MealRow) => s + (m.fat_g || 0), 0) ?? 0;
+  const totalWater = waterLogs.data?.reduce((s: number, w: WaterRow) => s + (w.glasses || 0), 0) ?? 0;
   const currentWeight = weightLogs.data?.[0]?.weight ?? null;
 
   return {

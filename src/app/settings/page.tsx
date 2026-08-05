@@ -4,7 +4,7 @@ import * as React from "react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   Sun, Moon, Bell, Shield, User, Ruler, Database,
-  ChevronRight, LogOut, Trash2, Download, Check,
+  ChevronRight, LogOut, Trash2, Download,
 } from "lucide-react";
 
 const fadeIn = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };

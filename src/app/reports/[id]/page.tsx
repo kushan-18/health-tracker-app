@@ -5,12 +5,12 @@ import { useParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { ArrowLeft, Download, Share2, TrendingUp, TrendingDown, CheckCircle, AlertTriangle, FileText } from "lucide-react";
+import { ArrowLeft, Download, Share2, TrendingUp, CheckCircle, AlertTriangle, FileText } from "lucide-react";
 import Link from "next/link";
-import { LineChart, Line, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, PieChart, Pie, Cell, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 const reportData: Record<string, {
   title: string;
@@ -202,6 +202,9 @@ export default function ReportDetailPage() {
 
   return (
     <AppLayout title={report.title}>
+      <div className="mb-4 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs text-center">
+        This report uses sample data. Dynamic generation from your real data coming soon.
+      </div>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Link href="/reports" className="inline-flex">

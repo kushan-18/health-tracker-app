@@ -103,7 +103,9 @@ function StatCard({ icon, label, value, change, className }: StatCardProps) {
   );
 }
 
-interface InteractiveCardProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface InteractiveCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children?: React.ReactNode;
+}
 
 function InteractiveCard({ className, children, ...props }: InteractiveCardProps) {
   return (
@@ -119,7 +121,9 @@ function InteractiveCard({ className, children, ...props }: InteractiveCardProps
   );
 }
 
-interface GradientCardProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface GradientCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children?: React.ReactNode;
+}
 
 function GradientCard({ className, children, ...props }: GradientCardProps) {
   return (

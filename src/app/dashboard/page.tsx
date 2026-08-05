@@ -5,22 +5,22 @@ import { useAuth } from "@/lib/auth-context";
 import { getTodaySummary, getWorkouts, getWeightLogs, getMeals, getHealthMetrics } from "@/lib/data-operations";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card } from "@/components/ui/card";
-import { CircularProgress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import {
   PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import {
-  UtensilsCrossed, Dumbbell, Droplets, Scale, Brain, BarChart3,
-  Heart, Flame, Zap, Moon, Target, Sparkles, Plus, ArrowRight,
+  UtensilsCrossed, Dumbbell, Droplets, Scale, Brain,
+  Heart, Flame, Target, Plus, ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 function useCountUp(target: number, duration = 2000) {
   const [count, setCount] = useState(0);
   useEffect(() => {
-    if (target === 0) { setCount(0); return; }
+    if (target === 0) return;
     let start = 0;
     const increment = target / (duration / 16);
     const timer = setInterval(() => {
@@ -48,8 +48,6 @@ function formatDateNice() {
 }
 
 const ChartTooltipStyle = { backgroundColor: "#1f2937", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "#f3f4f6", fontSize: "12px", padding: "8px 12px" };
-
-const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 // Empty state component
 function EmptyState({ icon: Icon, title, description, actionLabel, actionHref }: { icon: React.ElementType; title: string; description: string; actionLabel: string; actionHref: string }) {
@@ -107,9 +105,6 @@ export default function DashboardPage() {
   const water = useCountUp(summary.water);
 
   const caloriePercent = summary.calories > 0 ? Math.min(100, Math.round((summary.calories / 2200) * 100)) : 0;
-  const proteinPercent = summary.protein > 0 ? Math.min(100, Math.round((summary.protein / 160) * 100)) : 0;
-  const carbsPercent = summary.carbs > 0 ? Math.min(100, Math.round((summary.carbs / 280) * 100)) : 0;
-  const fatPercent = summary.fat > 0 ? Math.min(100, Math.round((summary.fat / 80) * 100)) : 0;
 
   const macroData = [
     { name: "Protein", value: summary.protein || 0, color: "#10b981" },
@@ -126,6 +121,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout title="Dashboard">
+      <ErrorBoundary>
       {!loading && !hasData && (
         <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-8">
           <EmptyState
@@ -314,6 +310,7 @@ export default function DashboardPage() {
           </div>
         </motion.div>
       </motion.div>
+      </ErrorBoundary>
     </AppLayout>
   );
 }

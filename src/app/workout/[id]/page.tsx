@@ -4,7 +4,7 @@ import * as React from "react";
 import { useParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ArrowLeft, Flame, Dumbbell, Clock, Weight, TrendingUp, Target } from "lucide-react";
 import Link from "next/link";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+
 
 const muscleGroupPositions: Record<MuscleGroup, { x: number; y: number }> = {
   Chest: { x: 50, y: 28 },

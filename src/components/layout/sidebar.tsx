@@ -23,10 +23,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth-context";
-import { createClient } from "@/lib/supabase/client";
+import { useLogout } from "@/lib/hooks";
 import { Avatar } from "@/components/ui/avatar";
-
-const supabase = createClient();
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -50,11 +48,7 @@ function Sidebar({ isMobile }: SidebarProps) {
   const pathname = usePathname();
   const { sidebarOpen, setSidebarOpen } = useStore();
   const { user } = useAuth();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/";
-  };
+  const handleLogout = useLogout();
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -69,13 +63,14 @@ function Sidebar({ isMobile }: SidebarProps) {
             <button
             onClick={() => setSidebarOpen(false)}
             className="rounded-lg p-1.5 text-zinc-400 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            aria-label="Close sidebar"
           >
             <X className="h-5 w-5" />
           </button>
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-2 overflow-y-auto">
+      <nav className="flex-1 space-y-1 px-3 py-2 overflow-y-auto" aria-label="Main navigation">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
           const Icon = item.icon;
@@ -84,6 +79,7 @@ function Sidebar({ isMobile }: SidebarProps) {
               key={item.href}
               href={item.href}
               onClick={() => isMobile && setSidebarOpen(false)}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 min-h-[44px]",
                 isActive

@@ -16,10 +16,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth-context";
-import { createClient } from "@/lib/supabase/client";
+import { useLogout } from "@/lib/hooks";
 import { Avatar } from "@/components/ui/avatar";
-
-const supabase = createClient();
 
 interface NavbarProps {
   title: string;
@@ -59,6 +57,7 @@ const notifications = [
 function Navbar({ title }: NavbarProps) {
   const { theme, toggleTheme, streaks, level, coins } = useStore();
   const { user } = useAuth();
+  const handleLogout = useLogout();
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showProfile, setShowProfile] = React.useState(false);
   const [notifState, setNotifState] = React.useState(notifications);
@@ -69,11 +68,6 @@ function Navbar({ title }: NavbarProps) {
     setNotifState((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/";
-  };
-
   return (
     <header className="fixed top-0 right-0 left-0 z-20 h-16 glass border-b border-border">
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
@@ -81,6 +75,7 @@ function Navbar({ title }: NavbarProps) {
           <button
             onClick={() => useStore.getState().toggleSidebar()}
             className="rounded-lg p-2 text-zinc-400 hover:text-foreground hover:bg-white/5 dark:hover:bg-white/5 transition-colors lg:hidden"
+            aria-label="Toggle sidebar"
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -91,6 +86,7 @@ function Navbar({ title }: NavbarProps) {
           <button
             onClick={toggleTheme}
             className="rounded-lg p-2 text-zinc-400 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
           >
             <motion.div
               key={theme}
@@ -113,6 +109,8 @@ function Navbar({ title }: NavbarProps) {
                 setShowProfile(false);
               }}
               className="relative rounded-lg p-2 text-zinc-400 hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+              aria-label="Notifications"
+              aria-expanded={showNotifications}
             >
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (

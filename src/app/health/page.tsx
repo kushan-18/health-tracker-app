@@ -10,7 +10,7 @@ import { getHealthMetrics, addHealthMetric } from "@/lib/data-operations";
 import { useAuth } from "@/lib/auth-context";
 import {
   Heart, Thermometer, Wind, Droplets, Activity, Moon,
-  Brain, Smile, Zap, Play, Pause, RotateCcw, Plus
+   Brain, Play, Pause, RotateCcw, Plus
 } from "lucide-react";
 
 const fadeIn = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };

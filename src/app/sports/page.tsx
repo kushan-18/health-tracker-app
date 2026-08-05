@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play, Pause, Timer, Flame, Heart, Trophy, TrendingUp,
-  ChevronDown, ChevronUp, Zap, Target, Medal,
+  ChevronDown, ChevronUp,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,

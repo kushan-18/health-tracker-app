@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { foods } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { ArrowLeft, Search, Clock, Plus, Save, X } from "lucide-react";
+import { ArrowLeft, Search, Clock, Plus, Save } from "lucide-react";
 import Link from "next/link";
 
 export default function AddFoodPage() {

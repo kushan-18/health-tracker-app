@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Send, Brain, Sparkles, Dumbbell, Apple, Moon, Zap } from "lucide-react";
+import { Plus, Send, Brain, Dumbbell, Apple, Moon, Zap } from "lucide-react";
 
 const suggestedPrompts = [
   { text: "Create a workout plan for me", icon: Dumbbell },
@@ -27,10 +27,6 @@ const aiResponses: Record<string, string> = {
 };
 
 const fallbackResponse = `Thank you for your question! As your AI Health Coach, I can help with:\n\n• **Workout Planning** — Custom exercise programs based on your goals\n• **Nutrition Advice** — Meal plans, macro tracking, food recommendations\n• **Sleep Optimization** — Tips for better rest and recovery\n• **Health Metrics** — Understanding your vitals and trends\n• **Mental Wellness** — Stress management, breathing exercises\n\nFeel free to ask me anything about your fitness journey, or try one of the suggested prompts below for a detailed analysis!`;
-
-function generateId() {
-  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
-}
 
 export default function CoachPage() {
   const { conversations, createConversation, addMessage } = useStore();
@@ -70,7 +66,7 @@ export default function CoachPage() {
     setTimeout(() => {
       addMessage(convId!, { content: response, role: "assistant" });
       setIsTyping(false);
-    }, 1200 + Math.random() * 800);
+    }, 1500);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -82,7 +78,10 @@ export default function CoachPage() {
 
   return (
     <AppLayout title="AI Coach">
-      <div className="flex h-[calc(100vh-8rem)] gap-4">
+      <div className="mb-4 px-3 py-2 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs text-center">
+        Demo mode — AI responses are pre-generated examples. Real AI integration coming soon.
+      </div>
+      <div className="flex h-[calc(100vh-10rem)] gap-4">
         {/* Sidebar */}
         <div className="hidden lg:flex flex-col w-64 shrink-0">
           <Button className="w-full mb-3 gap-2" onClick={() => { setActiveConvId(null); }}>

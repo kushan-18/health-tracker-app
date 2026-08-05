@@ -9,10 +9,9 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  FileText, Download, Share2, TrendingUp, Activity, Heart,
-  Moon, Brain, Dumbbell, Utensils, Eye
+  FileText, Download, Share2, TrendingUp, Heart,
+  Brain, Dumbbell, Utensils, Eye
 } from "lucide-react";
-import Link from "next/link";
 
 const fadeIn = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
 const stagger = { animate: { transition: { staggerChildren: 0.08 } } };
@@ -115,6 +114,9 @@ export default function ReportsPage() {
 
   return (
     <AppLayout title="Reports">
+      <div className="mb-4 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs text-center">
+        Reports currently use sample data. Dynamic report generation from your real data coming soon.
+      </div>
       <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-6">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {reports.map((report) => (

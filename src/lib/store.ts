@@ -1,10 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { generateId } from "./utils";
 import type { AIChat, ChatMessage } from "./types";
-
-function generateId() {
-  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
-}
 
 interface VitalXStore {
   // UI
@@ -30,7 +27,7 @@ interface VitalXStore {
 
 export const useStore = create<VitalXStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // UI
       theme: "dark",
       sidebarOpen: true,
@@ -94,6 +91,3 @@ export const useStore = create<VitalXStore>()(
     }
   )
 );
-
-const useAuthStore = useStore;
-export { useAuthStore };

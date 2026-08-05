@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import {
   Brain, Apple, Dumbbell, Trophy, Heart, BarChart3,
-  ChevronDown, ChevronRight, Check, Star, Zap, Shield,
+  ChevronDown, ChevronRight, Check, Star, Zap,
   ArrowRight, Play, Menu, X, MessageCircle, Flame,
   Target, Activity, TrendingUp, Users, Clock
 } from "lucide-react";

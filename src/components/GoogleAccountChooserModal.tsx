@@ -69,6 +69,7 @@ export default function GoogleAccountChooserModal({
     try {
       const saved = localStorage.getItem('vitalx_google_accounts')
       const list: GoogleAccount[] = saved ? JSON.parse(saved) : defaultGoogleAccounts
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAccounts(list)
     } catch (e) {
       setAccounts(defaultGoogleAccounts)

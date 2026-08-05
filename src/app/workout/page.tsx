@@ -5,18 +5,17 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+
 import { Modal } from "@/components/ui/modal";
 import { exercises, workoutPlanSample } from "@/lib/data";
 import { getWorkouts, addWorkout } from "@/lib/data-operations";
 import { useAuth } from "@/lib/auth-context";
-import type { Exercise, WorkoutSet, WorkoutExercise, CompletedWorkout, MuscleGroup } from "@/lib/types";
-import { cn, generateId, formatTime } from "@/lib/utils";
+import type { Exercise, WorkoutExercise, MuscleGroup } from "@/lib/types";
+import { cn, generateId } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Play, Pause, RotateCcw, Plus, Trash2, Timer, Dumbbell, ChevronDown, ChevronUp,
-  Search, Sparkles, Zap, Target, Clock, Flame, Weight, X, Check, BookOpen, Filter,
-  Calendar, TrendingUp, List,
+  Play, Pause, RotateCcw, Plus, Trash2, Dumbbell, ChevronDown, ChevronUp,
+  Search, Sparkles, Clock, X, Check, BookOpen,
 } from "lucide-react";
 
 const muscleGroups: MuscleGroup[] = ["Chest", "Back", "Shoulders", "Arms", "Legs", "Core"];
@@ -77,11 +76,15 @@ function ActiveWorkoutTab({ completedWorkouts }: { completedWorkouts: any[] }) {
   }, [started, isPaused]);
 
   React.useEffect(() => {
-    if (!showRestTimer || restRemaining <= 0) {
-      if (restRemaining <= 0 && showRestTimer) setShowRestTimer(false);
-      return;
-    }
-    const interval = setInterval(() => setRestRemaining((r) => r - 1), 1000);
+    if (!showRestTimer || restRemaining <= 0) return;
+    const interval = setInterval(() => setRestRemaining((r) => {
+      if (r <= 1) {
+        clearInterval(interval);
+        setShowRestTimer(false);
+        return 0;
+      }
+      return r - 1;
+    }), 1000);
     return () => clearInterval(interval);
   }, [showRestTimer, restRemaining]);
 
