@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { getWorkouts } from "@/lib/data-operations";
+import { getSportSessions, addSportSession } from "@/lib/data-operations";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -64,12 +64,14 @@ export default function SportPage() {
 }
 
 function ActiveSportTab() {
+  const { user } = useAuth();
   const [selectedSport, setSelectedSport] = React.useState<SportType | null>(null);
   const [tracking, setTracking] = React.useState(false);
   const [elapsed, setElapsed] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
   const [heartRate, setHeartRate] = React.useState(72);
   const [distance, setDistance] = React.useState(0);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!tracking || isPaused) return;
@@ -89,6 +91,31 @@ function ActiveSportTab() {
 
   const pace = elapsed > 0 ? (elapsed / 60 / Math.max(distance, 0.01)).toFixed(2) : "0.00";
   const estimatedCalories = Math.round(elapsed * 0.15 * (heartRate / 100));
+
+  const saveSession = async () => {
+    if (!selectedSport || !user) return;
+    setSaveError(null);
+    const durationMinutes = Math.max(1, Math.round(elapsed / 60));
+    try {
+      await addSportSession(user.id, {
+        sport: selectedSport,
+        duration_minutes: durationMinutes,
+        calories_burned: estimatedCalories,
+        distance: Number(distance.toFixed(2)),
+        avg_heart_rate: Math.round(heartRate),
+      });
+    } catch (e) {
+      console.error("Failed to save sport session:", e);
+      setSaveError("Failed to save session. Please try again.");
+      return;
+    }
+    setTracking(false);
+    setIsPaused(false);
+    setSelectedSport(null);
+    setElapsed(0);
+    setHeartRate(72);
+    setDistance(0);
+  };
 
   if (!selectedSport) {
     return (
@@ -134,7 +161,7 @@ function ActiveSportTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => { setTracking(false); setSelectedSport(null); }}>{"\u2190"} End Session</Button>
+        <Button variant="ghost" size="sm" onClick={saveSession}>{"\u2190"} End Session</Button>
         <span className="text-sm text-zinc-400">{sportIcons[selectedSport] || "\u{1F3C3}"} {selectedSport}</span>
       </div>
       <Card className="border-zinc-700/50 bg-gradient-to-br from-zinc-900/80 to-zinc-800/50">
@@ -167,8 +194,9 @@ function ActiveSportTab() {
         <Button variant={isPaused ? "default" : "secondary"} className="flex-1" onClick={() => setIsPaused(!isPaused)}>
           {isPaused ? <><Play className="h-4 w-4" /> Resume</> : <><Pause className="h-4 w-4" /> Pause</>}
         </Button>
-        <Button variant="success" className="flex-1"><Trophy className="h-4 w-4" /> Finish</Button>
+        <Button variant="success" className="flex-1" onClick={saveSession}><Trophy className="h-4 w-4" /> Finish</Button>
       </div>
+      {saveError && <p className="text-sm text-red-400 text-center">{saveError}</p>}
     </div>
   );
 }
@@ -181,11 +209,11 @@ function SportHistoryTab() {
 
   React.useEffect(() => {
     if (!user) return;
-    getWorkouts(user.id).then(setSessions).catch(console.error);
+    getSportSessions(user.id).then(setSessions).catch(console.error);
   }, [user]);
 
-  const filtered = filter === "All" ? sessions : sessions.filter((s: any) => s.type === filter);
-  const sportTypes = [...new Set(sessions.map((s: any) => s.type))];
+  const filtered = filter === "All" ? sessions : sessions.filter((s: any) => s.sport === filter);
+  const sportTypes = [...new Set(sessions.map((s: any) => s.sport))];
 
   if (sessions.length === 0) {
     return (
@@ -211,11 +239,11 @@ function SportHistoryTab() {
             <Card className="overflow-hidden">
               <button onClick={() => setExpandedId(expandedId === session.id ? null : session.id)} className="w-full text-left p-4 flex items-center justify-between cursor-pointer">
                 <div className="flex items-center gap-3">
-                  <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg", sportColors[session.type] || "from-gray-500 to-gray-600")}>
-                    {sportIcons[session.type] || "\u{1F3C3}"}
+                  <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-lg", sportColors[session.sport] || "from-gray-500 to-gray-600")}>
+                    {sportIcons[session.sport] || "\u{1F3C3}"}
                   </div>
                   <div>
-                    <div className="font-medium text-white">{session.name || session.type}</div>
+                    <div className="font-medium text-white">{session.sport}</div>
                     <div className="text-xs text-zinc-400">{session.duration_minutes} min</div>
                   </div>
                 </div>
@@ -240,6 +268,16 @@ function SportHistoryTab() {
                           <div className="text-xs text-zinc-500">Minutes</div>
                         </div>
                       </div>
+                      <div className="grid grid-cols-2 gap-3 pb-3">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-blue-400">{Number(session.distance || 0).toFixed(2)}</div>
+                          <div className="text-xs text-zinc-500">Distance (km)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-red-400">{session.avg_heart_rate} bpm</div>
+                          <div className="text-xs text-zinc-500">Avg Heart Rate</div>
+                        </div>
+                      </div>
                       {session.notes && <p className="text-sm text-zinc-400">{session.notes}</p>}
                       <p className="text-xs text-zinc-500">{new Date(session.completed_at || session.date).toLocaleString()}</p>
                     </div>
@@ -260,11 +298,11 @@ function PerformanceTab() {
 
   React.useEffect(() => {
     if (!user) return;
-    getWorkouts(user.id).then(setSessions).catch(console.error);
+    getSportSessions(user.id).then(setSessions).catch(console.error);
   }, [user]);
 
   const sportCounts: Record<string, number> = {};
-  sessions.forEach((s: any) => { sportCounts[s.type] = (sportCounts[s.type] || 0) + 1; });
+  sessions.forEach((s: any) => { sportCounts[s.sport] = (sportCounts[s.sport] || 0) + 1; });
   const barData = Object.entries(sportCounts).map(([name, count]) => ({ name, sessions: count }));
 
   const totalCalories = sessions.reduce((s, w) => s + (w.calories_burned || 0), 0);

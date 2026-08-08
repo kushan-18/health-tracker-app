@@ -50,11 +50,12 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError("");
 
-    const { error: authError } = await supabase.auth.signUp({
+    const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
         data: { name: data.name },
+        emailRedirectTo: `${window.location.origin}/auth/login`,
       },
     });
 
@@ -64,7 +65,23 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/profile/setup");
+    if (signUpData?.session) {
+      router.push("/profile/setup");
+      return;
+    }
+
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: data.email,
+      options: { shouldCreateUser: false },
+    });
+
+    if (otpError) {
+      setError(otpError.message);
+      setIsLoading(false);
+      return;
+    }
+
+    router.push(`/auth/otp?email=${encodeURIComponent(data.email)}`);
   };
 
   return (
@@ -91,27 +108,27 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-white/60 mb-1.5">Full Name</label>
+              <label htmlFor="name" className="block text-sm font-medium text-white/60 mb-1.5">Full Name</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input {...register("name")} type="text" placeholder="John Doe" className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-colors" />
+                <input id="name" {...register("name")} type="text" placeholder="John Doe" className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-colors" />
               </div>
               {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-white/60 mb-1.5">Email</label>
+              <label htmlFor="email" className="block text-sm font-medium text-white/60 mb-1.5">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input {...register("email")} type="email" placeholder="you@example.com" className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-colors" />
+                <input id="email" {...register("email")} type="email" placeholder="you@example.com" className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-colors" />
               </div>
               {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-white/60 mb-1.5">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-white/60 mb-1.5">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input {...register("password")} type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-colors" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                <input id="password" {...register("password")} type={showPassword ? "text" : "password"} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-colors" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -127,11 +144,11 @@ export default function RegisterPage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-white/60 mb-1.5">Confirm Password</label>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-white/60 mb-1.5">Confirm Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input {...register("confirmPassword")} type={showConfirm ? "text" : "password"} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-colors" />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                <input id="confirmPassword" {...register("confirmPassword")} type={showConfirm ? "text" : "password"} placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-colors" />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>

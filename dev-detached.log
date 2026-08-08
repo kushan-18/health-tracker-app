@@ -1,0 +1,36 @@
+
+> vitalx-ai@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.11 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.91.94.37:3000
+- Environments: .env.local
+✓ Ready in 660ms
+
+Assertion failed: !_wcsnicmp(filename, dir, dirlen), file src\win\fs-event.c, line 72
+[?25h
+
+> vitalx-ai@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.11 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.91.94.37:3000
+- Environments: .env.local
+✓ Ready in 514ms
+
+Assertion failed: !_wcsnicmp(filename, dir, dirlen), file src\win\fs-event.c, line 72
+[?25h
+
+> vitalx-ai@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.11 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.91.94.37:3000
+- Environments: .env.local
+✓ Ready in 570ms
+
+Assertion failed: !_wcsnicmp(filename, dir, dirlen), file src\win\fs-event.c, line 72
+[?25h

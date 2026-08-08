@@ -113,11 +113,25 @@ export default function DashboardPage() {
   ].filter((d) => d.value > 0);
 
   const miniStats = [
-    { label: "Calories", value: calories, goal: 2200, unit: "kcal", color: "bg-emerald-500", icon: Flame, percent: caloriePercent },
-    { label: "Water", value: water, goal: 8, unit: "glasses", color: "bg-blue-500", icon: Droplets, percent: Math.min(100, Math.round((summary.water / 8) * 100)) },
-    { label: "Weight", value: summary.currentWeight ?? 0, goal: 0, unit: "kg", color: "bg-purple-500", icon: Scale, percent: 0, isWeight: true },
-    { label: "Meals", value: summary.mealCount, goal: 0, unit: "logged", color: "bg-orange-500", icon: UtensilsCrossed, percent: 0 },
+    { label: "Calories", value: calories, goal: 2200, unit: "kcal", tone: "emerald" as const, icon: Flame, percent: caloriePercent, glow: "shadow-[0_8px_20px_-8px_rgba(16,185,129,0.55)]" },
+    { label: "Water", value: water, goal: 8, unit: "glasses", tone: "cyan" as const, icon: Droplets, percent: Math.min(100, Math.round((summary.water / 8) * 100)), glow: "shadow-[0_8px_20px_-8px_rgba(34,211,238,0.55)]" },
+    { label: "Weight", value: summary.currentWeight ?? 0, goal: 0, unit: "kg", tone: "violet" as const, icon: Scale, percent: 0, isWeight: true, glow: "shadow-[0_8px_20px_-8px_rgba(139,92,246,0.55)]" },
+    { label: "Meals", value: summary.mealCount, goal: 0, unit: "logged", tone: "amber" as const, icon: UtensilsCrossed, percent: 0, glow: "shadow-[0_8px_20px_-8px_rgba(245,158,11,0.55)]" },
   ];
+
+  const toneGradients: Record<string, string> = {
+    emerald: "bg-gradient-to-br from-emerald-500 to-teal-500",
+    cyan: "bg-gradient-to-br from-cyan-500 to-blue-500",
+    violet: "bg-gradient-to-br from-violet-500 to-purple-500",
+    amber: "bg-gradient-to-br from-amber-500 to-orange-500",
+  };
+
+  const toneText: Record<string, string> = {
+    emerald: "text-emerald-400",
+    cyan: "text-cyan-400",
+    violet: "text-violet-400",
+    amber: "text-amber-400",
+  };
 
   return (
     <AppLayout title="Dashboard">
@@ -146,15 +160,27 @@ export default function DashboardPage() {
             {miniStats.map((s) => (
               <Card key={s.label} className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className={`w-9 h-9 rounded-xl ${s.color}/10 flex items-center justify-center`}>
-                    <s.icon className={`w-4 h-4 ${s.color.replace("bg-", "text-")}`} />
+                  <div className={`w-9 h-9 rounded-xl ${toneGradients[s.tone]} flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-110`}>
+                    <s.icon className="w-4 h-4 text-white" />
                   </div>
                   <span className="text-xs text-muted-foreground">{s.label}</span>
                 </div>
-                <div className="text-2xl font-bold text-foreground">
+                <div className={`text-2xl font-bold text-foreground ${s.isWeight ? "" : ""}`}>
                   {s.isWeight ? (s.value > 0 ? `${s.value} kg` : "—") : s.value.toLocaleString()}
                 </div>
-                {!s.isWeight && s.goal > 0 && <p className="text-xs text-muted-foreground mt-1">Goal: {s.goal.toLocaleString()} {s.unit}</p>}
+                {!s.isWeight && s.goal > 0 && (
+                  <>
+                    <p className="text-xs text-muted-foreground mt-1">Goal: {s.goal.toLocaleString()} {s.unit}</p>
+                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden mt-2">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          s.tone === "emerald" ? "grad-bar-emerald" : s.tone === "cyan" ? "grad-bar-blue" : "grad-bar-violet"
+                        }`}
+                        style={{ width: `${s.percent}%` }}
+                      />
+                    </div>
+                  </>
+                )}
                 {s.isWeight && <p className="text-xs text-muted-foreground mt-1">Current weight</p>}
               </Card>
             ))}
@@ -179,9 +205,9 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex-1 space-y-3">
                     {[
-                      { label: "Protein", value: summary.protein, goal: 160, color: "bg-emerald-500", unit: "g" },
-                      { label: "Carbs", value: summary.carbs, goal: 280, color: "bg-blue-500", unit: "g" },
-                      { label: "Fat", value: summary.fat, goal: 80, color: "bg-yellow-500", unit: "g" },
+                      { label: "Protein", value: summary.protein, goal: 160, grad: "grad-bar-emerald", unit: "g" },
+                      { label: "Carbs", value: summary.carbs, goal: 280, grad: "grad-bar-blue", unit: "g" },
+                      { label: "Fat", value: summary.fat, goal: 80, grad: "grad-bar-amber", unit: "g" },
                     ].map((m) => (
                       <div key={m.label}>
                         <div className="flex justify-between text-xs mb-1">
@@ -189,7 +215,7 @@ export default function DashboardPage() {
                           <span className="text-foreground">{Math.round(m.value)} / {m.goal}{m.unit}</span>
                         </div>
                         <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                          <div className={`h-full ${m.color} rounded-full transition-all`} style={{ width: `${Math.min(100, (m.value / m.goal) * 100)}%` }} />
+                          <div className={`h-full ${m.grad} rounded-full transition-all`} style={{ width: `${Math.min(100, (m.value / m.goal) * 100)}%` }} />
                         </div>
                       </div>
                     ))}
@@ -207,7 +233,7 @@ export default function DashboardPage() {
                 <span className="text-muted-foreground text-sm ml-1">/ 2,200 kcal</span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden mb-4">
-                <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${caloriePercent}%` }} />
+                <div className="h-full grad-bar-emerald rounded-full transition-all" style={{ width: `${caloriePercent}%` }} />
               </div>
               {summary.calories > 0 ? (
                 <ResponsiveContainer width="100%" height={120}>
@@ -234,9 +260,9 @@ export default function DashboardPage() {
               {recentWorkouts.length > 0 ? (
                 <div className="space-y-3">
                   {recentWorkouts.map((w, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                        <Dumbbell className="w-4 h-4 text-emerald-400" />
+                    <div key={i} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl transition-colors hover:bg-white/10">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-[0_6px_16px_-6px_rgba(16,185,129,0.5)]">
+                        <Dumbbell className="w-4 h-4 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{w.name}</p>
@@ -281,8 +307,8 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-8 gap-2">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className={`aspect-square rounded-xl flex items-center justify-center ${i < summary.water ? "bg-blue-500/20" : "bg-white/5"}`}>
-                    <Droplets className={`w-4 h-4 ${i < summary.water ? "text-blue-400" : "text-white/10"}`} />
+                  <div key={i} className={`aspect-square rounded-xl flex items-center justify-center transition-all ${i < summary.water ? "bg-gradient-to-br from-blue-500/40 to-cyan-500/40 shadow-[0_0_12px_rgba(59,130,246,0.25)]" : "bg-white/5"}`}>
+                    <Droplets className={`w-4 h-4 ${i < summary.water ? "text-white" : "text-white/10"}`} />
                   </div>
                 ))}
               </div>
@@ -295,13 +321,15 @@ export default function DashboardPage() {
               <h3 className="text-sm font-medium text-foreground mb-4">Quick Actions</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: "Log Meal", href: "/nutrition", color: "text-emerald-400", icon: UtensilsCrossed },
-                  { label: "Start Workout", href: "/workout", color: "text-blue-400", icon: Dumbbell },
-                  { label: "Log Weight", href: "/health", color: "text-purple-400", icon: Scale },
-                  { label: "AI Coach", href: "/coach", color: "text-yellow-400", icon: Brain },
+                  { label: "Log Meal", href: "/nutrition", grad: "bg-gradient-to-br from-emerald-500 to-teal-500", icon: UtensilsCrossed },
+                  { label: "Start Workout", href: "/workout", grad: "bg-gradient-to-br from-blue-500 to-cyan-500", icon: Dumbbell },
+                  { label: "Log Weight", href: "/health", grad: "bg-gradient-to-br from-violet-500 to-purple-500", icon: Scale },
+                  { label: "AI Coach", href: "/coach", grad: "bg-gradient-to-br from-amber-500 to-orange-500", icon: Brain },
                 ].map((a) => (
                   <Link key={a.label} href={a.href} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all">
-                    <a.icon className={`w-5 h-5 ${a.color}`} />
+                    <div className={`w-8 h-8 shrink-0 rounded-lg ${a.grad} flex items-center justify-center shadow-md`}>
+                      <a.icon className="w-4 h-4 text-white" />
+                    </div>
                     <span className="text-sm text-foreground">{a.label}</span>
                   </Link>
                 ))}

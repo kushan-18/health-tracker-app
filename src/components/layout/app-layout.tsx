@@ -53,15 +53,16 @@ function AppLayout({ children, title }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <div className="fixed inset-0 z-0 ambient-app" aria-hidden="true" />
       <Sidebar isMobile={isMobile} />
       <div
         className={cn(
-          "transition-all duration-300",
+          "relative z-10 transition-all duration-300",
           !isMobile && sidebarOpen ? "lg:ml-64" : !isMobile ? "lg:ml-20" : ""
         )}
       >
         <Navbar title={title} />
-        <main className="pt-16 min-h-screen p-4 lg:p-6">
+        <main className="pt-16 min-h-screen px-4 lg:px-6 pb-4 lg:pb-6">
           {children}
         </main>
       </div>

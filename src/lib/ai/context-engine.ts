@@ -64,7 +64,7 @@ export async function buildHealthContext(userId: string): Promise<HealthContext>
           gender: profile.gender || "unknown",
           height: profile.height || 0,
           weight: profile.weight || 0,
-          goal: profile.goal || "General fitness",
+          goal: profile.fitness_goal || "General fitness",
           activityLevel: profile.activity_level || "moderate",
           dietPreference: profile.diet_preference || "No preference",
           workoutExperience: profile.workout_experience || "beginner",

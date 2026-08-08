@@ -240,6 +240,97 @@ export async function addChatMessage(userId: string, message: string, role: "use
 }
 
 // ============================================================
+// Preferences (Settings persistence)
+// ============================================================
+export async function getPreferences(userId: string): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("preferences")
+    .eq("id", userId)
+    .single();
+  if (error) throw error;
+  return (data?.preferences as Record<string, unknown>) || {};
+}
+
+export async function updatePreferences(userId: string, preferences: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ preferences })
+    .eq("id", userId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
+// Sport Sessions
+// ============================================================
+export async function getSportSessions(userId: string) {
+  const { data, error } = await supabase
+    .from("sport_sessions")
+    .select("*")
+    .eq("user_id", userId)
+    .order("completed_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function addSportSession(userId: string, session: {
+  sport: string;
+  duration_minutes: number;
+  calories_burned: number;
+  distance: number;
+  avg_heart_rate: number;
+  notes?: string;
+}) {
+  const { data, error } = await supabase
+    .from("sport_sessions")
+    .insert({ ...session, user_id: userId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteSportSession(id: string) {
+  const { error } = await supabase
+    .from("sport_sessions")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+// ============================================================
+// Workout Plans (AI-generated)
+// ============================================================
+export async function getWorkoutPlans(userId: string) {
+  const { data, error } = await supabase
+    .from("workout_plans")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function addWorkoutPlan(userId: string, plan: {
+  goal: string;
+  experience: string;
+  days_per_week: number;
+  equipment: string;
+  plan: unknown[];
+}) {
+  const { data, error } = await supabase
+    .from("workout_plans")
+    .insert({ ...plan, user_id: userId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// ============================================================
 // Helper: Get today's aggregated data
 // ============================================================
 export async function getTodaySummary(userId: string) {

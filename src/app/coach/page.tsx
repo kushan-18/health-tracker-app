@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Send, Brain, Dumbbell, Apple, Moon, Zap } from "lucide-react";
+import { Plus, Send, Brain, Dumbbell, Apple, Moon, Zap, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 interface Message {
   id: string;
@@ -38,15 +38,28 @@ export default function CoachPage() {
   const [input, setInput] = React.useState("");
   const [isStreaming, setIsStreaming] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const messagesRef = React.useRef<HTMLDivElement>(null);
+  const stickToBottomRef = React.useRef(true);
   const abortRef = React.useRef<AbortController | null>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  };
+
+  const handleScroll = () => {
+    const el = messagesRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    stickToBottomRef.current = nearBottom;
   };
 
   React.useEffect(() => {
-    scrollToBottom();
+    if (stickToBottomRef.current) {
+      scrollToBottom();
+    }
   }, [messages, isStreaming]);
 
   React.useEffect(() => {
@@ -219,6 +232,8 @@ export default function CoachPage() {
     setMessages([]);
   }
 
+  const activeTitle = conversations.find((c) => c.id === activeConvId)?.title || "New chat";
+
   function renderMarkdown(content: string) {
     return content.split("\n").map((line, i) => {
       if (line.startsWith("•") || line.startsWith("-")) {
@@ -242,49 +257,73 @@ export default function CoachPage() {
 
   return (
     <AppLayout title="AI Coach">
-      <div className="flex h-[calc(100vh-10rem)] gap-4">
-        <div className="hidden lg:flex flex-col w-64 shrink-0">
-          <Button className="w-full mb-3 gap-2" onClick={handleNewChat}>
-            <Plus className="h-4 w-4" /> New Chat
-          </Button>
-          <div className="flex-1 overflow-y-auto space-y-1">
-            {conversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => setActiveConvId(conv.id)}
-                className={cn(
-                  "w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all cursor-pointer group",
-                  activeConvId === conv.id
-                    ? "bg-violet-500/15 text-white border border-violet-500/20"
-                    : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
-                )}
-              >
-                <div className="truncate">{conv.title}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">
-                  {new Date(conv.updated_at || conv.created_at).toLocaleDateString()}
+      <div className="flex h-[calc(100vh-5rem)] lg:h-[calc(100vh-5.5rem)] gap-3 -mx-4 lg:-mx-6">
+        <AnimatePresence initial={false}>
+          {sidebarOpen && (
+            <motion.aside
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 256, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="hidden lg:block shrink-0 overflow-hidden min-h-0"
+            >
+              <div className="w-64 h-full flex flex-col min-h-0">
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
+                  {conversations.map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => setActiveConvId(conv.id)}
+                      className={cn(
+                        "w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all cursor-pointer group",
+                        activeConvId === conv.id
+                          ? "bg-violet-500/15 text-white border border-violet-500/20"
+                          : "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
+                      )}
+                    >
+                      <div className="truncate">{conv.title}</div>
+                      <div className="text-xs text-zinc-500 mt-0.5">
+                        {new Date(conv.updated_at || conv.created_at).toLocaleDateString()}
+                      </div>
+                    </button>
+                  ))}
+                  {conversations.length === 0 && (
+                    <div className="text-center py-8 text-zinc-500 text-sm">No conversations yet</div>
+                  )}
                 </div>
-              </button>
-            ))}
-            {conversations.length === 0 && (
-              <div className="text-center py-8 text-zinc-500 text-sm">No conversations yet</div>
-            )}
-          </div>
-        </div>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <Card className="flex-1 flex flex-col overflow-hidden">
-            <CardContent className="flex-1 flex flex-col p-0">
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex items-center gap-2 pb-3 shrink-0">
+            <button
+              onClick={() => setSidebarOpen((v) => !v)}
+              aria-label={sidebarOpen ? "Hide conversations" : "Show conversations"}
+              className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/70 transition-all"
+            >
+              {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+            </button>
+            <Button size="sm" className="gap-1.5" onClick={handleNewChat}>
+              <Plus className="h-4 w-4" /> New Chat
+            </Button>
+            <div className="flex-1 min-w-0 text-sm font-medium text-zinc-300 truncate">
+              {activeTitle}
+            </div>
+          </div>
+          <Card className="flex-1 min-h-0 flex flex-col overflow-hidden p-0">
+            <CardContent className="flex-1 min-h-0 flex flex-col p-0">
+              <div ref={messagesRef} onScroll={handleScroll} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4">
                 {messages.length === 0 && !isStreaming ? (
                   <div className="flex flex-col items-center justify-center h-full text-center px-4">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center mb-4">
                       <Brain className="h-8 w-8 text-white" />
                     </div>
                     <h2 className="text-xl font-bold text-foreground mb-2">VitalX AI Coach</h2>
-                    <p className="text-sm text-muted-foreground mb-8 max-w-sm">
+                    <p className="text-sm text-muted-foreground mb-8 max-w-2xl">
                       Your personal AI health coach. I have access to your real health data and can provide personalized recommendations.
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-3xl">
                       {suggestedPrompts.map((prompt) => (
                         <button
                           key={prompt.text}
@@ -309,7 +348,7 @@ export default function CoachPage() {
                       >
                         <div
                           className={cn(
-                            "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                            "max-w-[92%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed",
                             msg.role === "user"
                               ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white"
                               : "bg-zinc-800/80 border border-zinc-700/50 text-zinc-200"
@@ -320,7 +359,14 @@ export default function CoachPage() {
                           ) : (
                             msg.content
                           )}
-                          {msg.role === "assistant" && isStreaming && msg.id === messages[messages.length - 1]?.id && (
+                          {msg.role === "assistant" && isStreaming && msg.id === messages[messages.length - 1]?.id && !msg.content.trim() && (
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" />
+                              <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                              <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                            </span>
+                          )}
+                          {msg.role === "assistant" && isStreaming && msg.id === messages[messages.length - 1]?.id && msg.content.trim() && (
                             <span className="inline-block w-1.5 h-4 bg-violet-400 ml-0.5 animate-pulse" />
                           )}
                         </div>
@@ -329,35 +375,26 @@ export default function CoachPage() {
                   </AnimatePresence>
                 )}
 
-                {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-                    <div className="bg-zinc-800/80 border border-zinc-700/50 rounded-2xl px-4 py-3 flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <div className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "300ms" }} />
-                    </div>
-                  </motion.div>
-                )}
-
                 {error && (
                   <div className="text-center text-xs text-red-400 py-2">{error}</div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               <div className="p-4 border-t border-zinc-800">
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full">
                   <input
                     type="text"
+                    aria-label="Message your AI coach"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Ask your AI coach about fitness, nutrition, sleep..."
-                    className="flex-1 bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="flex-1 bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-foreground placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
                     disabled={isStreaming}
                   />
                   <Button
                     size="icon"
+                    aria-label="Send message"
                     onClick={() => handleSend()}
                     disabled={!input.trim() || isStreaming}
                   >

@@ -139,8 +139,8 @@ export default function ReportsPage() {
                         </Button>
                       </>
                     ) : (
-                      <Button size="sm" variant="secondary" className="gap-1.5 flex-1">
-                        Generate Report
+                      <Button size="sm" variant="outline" className="gap-1.5 flex-1" disabled>
+                        Coming Soon
                       </Button>
                     )}
                   </div>

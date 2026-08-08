@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { foods, recipes } from "@/lib/data";
-import { getMeals, addMeal, getWaterLogs, addWaterLog } from "@/lib/data-operations";
+import { getMeals, addMeal, deleteMeal, getWaterLogs, addWaterLog } from "@/lib/data-operations";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   UtensilsCrossed, Search, BookOpen, Droplets, Plus, Clock, ChefHat,
-  Flame, Apple, ArrowRight,
+  Flame, Apple, ArrowRight, Trash2, Camera, AlertTriangle, Minus, X,
+  Loader2, Upload, Save,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -31,6 +32,7 @@ interface TabProps {
   meals: MealRow[];
   waterCount: number;
   onAddMeal: (meal: Omit<MealRow, "id" | "logged_at">) => void;
+  onDeleteMeal: (mealId: string) => void;
   onAddWater: () => void;
   userId: string;
   onSwitchTab?: (tab: string) => void;
@@ -60,6 +62,13 @@ export default function NutritionPage() {
     } catch (e) { console.error(e); }
   };
 
+  const handleDeleteMeal = async (mealId: string) => {
+    try {
+      await deleteMeal(mealId);
+      setMeals((prev) => prev.filter((m) => m.id !== mealId));
+    } catch (e) { console.error(e); }
+  };
+
   const handleAddWater = async () => {
     if (!user) return;
     try {
@@ -78,9 +87,9 @@ export default function NutritionPage() {
           <TabsTrigger value="recipes"><ChefHat className="h-4 w-4 mr-1.5" />Recipes</TabsTrigger>
           <TabsTrigger value="water"><Droplets className="h-4 w-4 mr-1.5" />Water</TabsTrigger>
         </TabsList>
-        <TabsContent value="today"><TodayTab meals={meals} waterCount={waterCount} onAddMeal={handleAddMeal} onAddWater={handleAddWater} userId={user?.id || ""} onSwitchTab={setActiveTab} /></TabsContent>
+        <TabsContent value="today"><TodayTab meals={meals} waterCount={waterCount} onAddMeal={handleAddMeal} onDeleteMeal={handleDeleteMeal} onAddWater={handleAddWater} userId={user?.id || ""} onSwitchTab={setActiveTab} /></TabsContent>
         <TabsContent value="planner"><MealPlannerTab meals={meals} /></TabsContent>
-        <TabsContent value="search"><FoodSearchTab onAddMeal={handleAddMeal} /></TabsContent>
+        <TabsContent value="search"><FoodSearchTab onAddMeal={handleAddMeal} userId={user?.id || ""} /></TabsContent>
         <TabsContent value="recipes"><RecipesTab /></TabsContent>
         <TabsContent value="water"><WaterTab waterCount={waterCount} onAddWater={handleAddWater} /></TabsContent>
       </Tabs>
@@ -88,7 +97,7 @@ export default function NutritionPage() {
   );
 }
 
-function TodayTab({ meals, onSwitchTab }: TabProps) {
+function TodayTab({ meals, onDeleteMeal, onSwitchTab }: TabProps) {
   const today = new Date().toISOString().split("T")[0];
   const todayMeals = meals.filter((m) => m.logged_at?.startsWith(today));
   const totalCalories = todayMeals.reduce((s, m) => s + (m.calories || 0), 0);
@@ -148,9 +157,9 @@ function TodayTab({ meals, onSwitchTab }: TabProps) {
           <CardContent>
             <div className="space-y-4">
               {[
-                { label: "Protein", current: totalProtein, goal: targets.protein, color: "bg-emerald-500" },
-                { label: "Carbs", current: totalCarbs, goal: targets.carbs, color: "bg-blue-500" },
-                { label: "Fat", current: totalFat, goal: targets.fat, color: "bg-amber-500" },
+                { label: "Protein", current: totalProtein, goal: targets.protein, grad: "grad-bar-emerald" },
+                { label: "Carbs", current: totalCarbs, goal: targets.carbs, grad: "grad-bar-blue" },
+                { label: "Fat", current: totalFat, goal: targets.fat, grad: "grad-bar-amber" },
               ].map((macro) => (
                 <div key={macro.label}>
                   <div className="flex justify-between mb-1">
@@ -162,7 +171,7 @@ function TodayTab({ meals, onSwitchTab }: TabProps) {
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min((macro.current / macro.goal) * 100, 100)}%` }}
                       transition={{ duration: 0.8 }}
-                      className={cn("h-full rounded-full", macro.color)}
+                      className={cn("h-full rounded-full", macro.grad)}
                     />
                   </div>
                 </div>
@@ -202,7 +211,20 @@ function TodayTab({ meals, onSwitchTab }: TabProps) {
                         <span className="text-sm font-medium text-white">{meal.name}</span>
                         <span className="text-xs text-zinc-500 ml-2 capitalize">{meal.type}</span>
                       </div>
-                      <span className="text-sm font-bold text-violet-400">{meal.calories} kcal</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-violet-400">{meal.calories} kcal</span>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Delete "${meal.name}"?`)) {
+                              onDeleteMeal(meal.id);
+                            }
+                          }}
+                          className="text-zinc-600 hover:text-red-400 transition-colors p-1 cursor-pointer"
+                          title="Delete meal"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <div className="flex gap-3 mt-1 text-xs text-zinc-500">
                       <span>P: {meal.protein_g}g</span>
@@ -292,27 +314,96 @@ function MealPlannerTab({ meals }: { meals: MealRow[] }) {
   );
 }
 
-function FoodSearchTab({ onAddMeal }: { onAddMeal: (meal: { name: string; type: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }) => void }) {
-  const [search, setSearch] = React.useState("");
-  const [addedIds, setAddedIds] = React.useState<Set<string>>(new Set());
-
-  const foodList = (foods as any[]) || [];
-  const filteredFoods = foodList.filter((f: any) => f.name.toLowerCase().includes(search.toLowerCase()));
-
-  const handleAdd = (food: any) => {
-    onAddMeal({
-      name: food.name,
-      type: "snack",
-      calories: food.calories,
-      protein_g: food.protein,
-      carbs_g: food.carbs,
-      fat_g: food.fat,
-    });
-    setAddedIds((prev) => new Set(prev).add(food.id));
-  };
+function FoodSearchTab({ onAddMeal, userId }: { onAddMeal: (meal: { name: string; type: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }) => void; userId: string }) {
+  const [subTab, setSubTab] = React.useState<"search" | "recent" | "photo" | "custom">("search");
 
   return (
     <div className="space-y-4">
+      <div className="flex gap-1 p-1 bg-zinc-900/50 rounded-xl border border-zinc-800">
+        {([
+          { key: "search" as const, label: "Search", icon: Search },
+          { key: "recent" as const, label: "Recent", icon: Clock },
+          { key: "photo" as const, label: "Photo", icon: Camera },
+          { key: "custom" as const, label: "Custom", icon: Plus },
+        ]).map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setSubTab(key)}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer",
+              subTab === key
+                ? "bg-violet-500/20 text-violet-400 border border-violet-500/30"
+                : "text-zinc-500 hover:text-zinc-300"
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" /> {label}
+          </button>
+        ))}
+      </div>
+      {subTab === "search" && <SearchSubTab onAddMeal={onAddMeal} />}
+      {subTab === "recent" && <RecentSubTab onAddMeal={onAddMeal} userId={userId} />}
+      {subTab === "photo" && <PhotoSubTab onAddMeal={onAddMeal} userId={userId} />}
+      {subTab === "custom" && <CustomSubTab onAddMeal={onAddMeal} />}
+    </div>
+  );
+}
+
+function QuantityStepper({ quantity, onChange }: { quantity: number; onChange: (q: number) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={(e) => { e.stopPropagation(); onChange(Math.max(1, quantity - 1)); }}
+        className="w-6 h-6 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer"
+      >
+        <Minus className="h-3 w-3" />
+      </button>
+      <span className="w-6 text-center text-xs font-medium text-white">{quantity}</span>
+      <button
+        onClick={(e) => { e.stopPropagation(); onChange(quantity + 1); }}
+        className="w-6 h-6 rounded-md bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer"
+      >
+        <Plus className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+type FoodItem = { id: string; name: string; calories: number; protein: number; carbs: number; fat: number; serving: string; category: string };
+
+function SearchSubTab({ onAddMeal }: { onAddMeal: (meal: { name: string; type: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }) => void }) {
+  const [search, setSearch] = React.useState("");
+  const [quantities, setQuantities] = React.useState<Map<string, number>>(new Map());
+  const [addedIds, setAddedIds] = React.useState<Set<string>>(new Set());
+
+  const foodList = (foods as FoodItem[]) || [];
+  const filteredFoods = foodList.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
+
+  const getQty = (id: string) => quantities.get(id) || 1;
+
+  const updateQty = (id: string, q: number) => {
+    setQuantities((prev) => {
+      const next = new Map(prev);
+      next.set(id, Math.max(1, q));
+      return next;
+    });
+  };
+
+  const handleAdd = (food: FoodItem) => {
+    const qty = getQty(food.id);
+    onAddMeal({
+      name: food.name,
+      type: "snack",
+      calories: food.calories * qty,
+      protein_g: food.protein * qty,
+      carbs_g: food.carbs * qty,
+      fat_g: food.fat * qty,
+    });
+    setAddedIds((prev) => new Set(prev).add(food.id));
+    setTimeout(() => setAddedIds((prev) => { const n = new Set(prev); n.delete(food.id); return n; }), 1500);
+  };
+
+  return (
+    <div className="space-y-3">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
         <input
@@ -323,7 +414,7 @@ function FoodSearchTab({ onAddMeal }: { onAddMeal: (meal: { name: string; type: 
       </div>
       <p className="text-xs text-zinc-500">{filteredFoods.length} foods found</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filteredFoods.map((food: any, i: number) => (
+        {filteredFoods.map((food, i) => (
           <motion.div key={food.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.02 }}>
             <Card className={cn("transition-all", addedIds.has(food.id) && "border-emerald-500/30 bg-emerald-500/5")}>
               <CardContent className="p-4">
@@ -342,18 +433,320 @@ function FoodSearchTab({ onAddMeal }: { onAddMeal: (meal: { name: string; type: 
                   <div><div className="text-sm font-bold text-blue-400">{food.carbs}g</div><div className="text-[10px] text-zinc-500">Carbs</div></div>
                   <div><div className="text-sm font-bold text-amber-400">{food.fat}g</div><div className="text-[10px] text-zinc-500">Fat</div></div>
                 </div>
-                <Button
-                  size="sm" variant={addedIds.has(food.id) ? "success" : "outline"} className="w-full"
-                  onClick={() => handleAdd(food)}
-                >
-                  {addedIds.has(food.id) ? "\u2713 Added" : <><Plus className="h-3 w-3" /> Add</>}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <QuantityStepper quantity={getQty(food.id)} onChange={(q) => updateQty(food.id, q)} />
+                  <Button
+                    size="sm" variant={addedIds.has(food.id) ? "success" : "outline"} className="flex-1"
+                    onClick={() => handleAdd(food)}
+                  >
+                    {addedIds.has(food.id) ? "\u2713 Added" : <><Plus className="h-3 w-3" /> Add</>}
+                  </Button>
+                </div>
+                {getQty(food.id) > 1 && (
+                  <p className="text-[10px] text-zinc-500 mt-1 text-right">
+                    {getQty(food.id)}× {food.calories} = <span className="text-emerald-400">{food.calories * getQty(food.id)} kcal</span>
+                  </p>
+                )}
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </div>
     </div>
+  );
+}
+
+function RecentSubTab({ onAddMeal, userId }: { onAddMeal: (meal: { name: string; type: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }) => void; userId: string }) {
+  const [recentMeals, setRecentMeals] = React.useState<{ name: string; calories: number; protein: number; carbs: number; fat: number; time: string }[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [addedNames, setAddedNames] = React.useState<Set<string>>(new Set());
+  const [quantities, setQuantities] = React.useState<Map<string, number>>(new Map());
+
+  React.useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    getMeals(userId).then((meals) => {
+      const seen = new Map<string, { name: string; calories: number; protein: number; carbs: number; fat: number; time: string }>();
+      for (const m of meals) {
+        if (!seen.has(m.name)) {
+          const d = new Date(m.logged_at);
+          const now = new Date();
+          const diffMs = now.getTime() - d.getTime();
+          const diffDays = Math.floor(diffMs / 86400000);
+          let timeLabel = "";
+          if (diffDays === 0) timeLabel = `Today, ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+          else if (diffDays === 1) timeLabel = `Yesterday, ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+          else timeLabel = `${diffDays} days ago`;
+          seen.set(m.name, {
+            name: m.name,
+            calories: m.calories,
+            protein: m.protein_g,
+            carbs: m.carbs_g,
+            fat: m.fat_g,
+            time: timeLabel,
+          });
+        }
+      }
+      if (!cancelled) setRecentMeals(Array.from(seen.values()).slice(0, 10));
+    }).catch(console.error).finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const getQty = (name: string) => quantities.get(name) || 1;
+  const updateQty = (name: string, q: number) => {
+    setQuantities((prev) => { const n = new Map(prev); n.set(name, Math.max(1, q)); return n; });
+  };
+
+  const handleAdd = (food: typeof recentMeals[number]) => {
+    const qty = getQty(food.name);
+    onAddMeal({ name: food.name, type: "snack", calories: food.calories * qty, protein_g: food.protein * qty, carbs_g: food.carbs * qty, fat_g: food.fat * qty });
+    setAddedNames((prev) => new Set(prev).add(food.name));
+    setTimeout(() => setAddedNames((prev) => { const n = new Set(prev); n.delete(food.name); return n; }), 1500);
+  };
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 text-zinc-500 animate-spin" /></div>;
+  if (recentMeals.length === 0) return (
+    <div className="text-center py-12">
+      <Clock className="w-8 h-8 text-zinc-500 mx-auto mb-3" />
+      <p className="text-sm text-zinc-400">No recent meals found.</p>
+      <p className="text-xs text-zinc-600 mt-1">Log some meals first, then they will appear here.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      {recentMeals.map((food, i) => (
+        <motion.div key={food.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+          <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-800/40 hover:bg-zinc-800/60 transition-colors">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-white">{food.name}</div>
+              <div className="text-xs text-zinc-500">{food.time} · {food.calories} kcal</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <QuantityStepper quantity={getQty(food.name)} onChange={(q) => updateQty(food.name, q)} />
+              <Button size="sm" variant={addedNames.has(food.name) ? "success" : "outline"} onClick={() => handleAdd(food)}>
+                {addedNames.has(food.name) ? "\u2713" : <Plus className="h-3 w-3" />}
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+type AnalyzedFood = { name: string; serving: string; calories: number; protein: number; carbs: number; fat: number; quantity: number };
+
+function PhotoSubTab({ onAddMeal, userId }: { onAddMeal: (meal: { name: string; type: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }) => void; userId: string }) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
+  const [imagePreview, setImagePreview] = React.useState<string | null>(null);
+  const [analyzing, setAnalyzing] = React.useState(false);
+  const [analyzedItems, setAnalyzedItems] = React.useState<AnalyzedFood[]>([]);
+  const [error, setError] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [dragOver, setDragOver] = React.useState(false);
+
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith("image/")) { setError("Please upload an image file."); return; }
+    if (file.size > 10 * 1024 * 1024) { setError("Image must be under 10MB."); return; }
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+    e.target.value = "";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  const analyzeImage = async () => {
+    if (!imagePreview) return;
+    setAnalyzing(true); setError(null);
+    try {
+      const res = await fetch("/api/analyze-food", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imagePreview }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Failed to analyze image"); return; }
+      setAnalyzedItems((data.items || []).map((item: Omit<AnalyzedFood, "quantity">) => ({ ...item, quantity: 1 })));
+    } catch (err) { setError(err instanceof Error ? err.message : "Failed to analyze image"); }
+    finally { setAnalyzing(false); }
+  };
+
+  const updateItem = (index: number, updates: Partial<AnalyzedFood>) => {
+    setAnalyzedItems((prev) => prev.map((item, i) => i === index ? { ...item, ...updates } : item));
+  };
+
+  const handleLogMeal = async () => {
+    if (analyzedItems.length === 0) return;
+    setSaving(true); setError(null);
+    try {
+      analyzedItems.filter((item) => item.name.trim()).forEach((item) => {
+        onAddMeal({ name: item.name.trim(), type: "photo", calories: item.calories * item.quantity, protein_g: item.protein * item.quantity, carbs_g: item.carbs * item.quantity, fat_g: item.fat * item.quantity });
+      });
+      setAnalyzedItems([]);
+      setImagePreview(null);
+    } catch (err) { setError(err instanceof Error ? err.message : "Failed to save meals"); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+        <p className="text-xs text-amber-300">AI estimates may not be 100% accurate — please review before logging.</p>
+      </div>
+
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileInput} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileInput} />
+
+      {!imagePreview ? (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={cn(
+            "border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all",
+            dragOver ? "border-violet-500 bg-violet-500/5" : "border-zinc-700 bg-zinc-800/30 hover:border-zinc-600"
+          )}
+        >
+          <Camera className="w-8 h-8 text-zinc-500 mx-auto mb-2" />
+          <p className="text-sm font-medium text-white mb-1">Take a photo or upload an image</p>
+          <p className="text-xs text-zinc-500">JPG, PNG up to 10MB</p>
+          <div className="flex gap-2 justify-center mt-3">
+            <Button size="sm" variant="outline" type="button" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
+              <Upload className="h-3 w-3" /> Upload
+            </Button>
+            <Button size="sm" variant="outline" type="button" onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}>
+              <Camera className="h-3 w-3" /> Camera
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="relative rounded-2xl overflow-hidden border border-zinc-700">
+            <img src={imagePreview} alt="Food preview" className="w-full max-h-48 object-cover" />
+            <button onClick={() => { setImagePreview(null); setAnalyzedItems([]); setError(null); }} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white hover:bg-black/80 cursor-pointer">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {analyzedItems.length === 0 && (
+            <Button onClick={analyzeImage} loading={analyzing} className="w-full gap-2">
+              <Camera className="h-4 w-4" /> Analyze Food
+            </Button>
+          )}
+        </div>
+      )}
+
+      {analyzedItems.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-xs font-medium text-zinc-400">Identified Items</h4>
+          {analyzedItems.map((item, index) => (
+            <motion.div key={index} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+              <Card className="border-zinc-800 bg-zinc-800/40">
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <input type="text" value={item.name} onChange={(e) => updateItem(index, { name: e.target.value })}
+                      placeholder="Food name" className="bg-transparent text-sm font-medium text-white border-b border-zinc-700 focus:border-violet-500 focus:outline-none flex-1 mr-2" />
+                    <div className="flex items-center gap-2">
+                      <QuantityStepper quantity={item.quantity} onChange={(q) => updateItem(index, { quantity: q })} />
+                      <button onClick={() => setAnalyzedItems((prev) => prev.filter((_, i) => i !== index))} className="text-zinc-500 hover:text-red-400 cursor-pointer"><X className="h-3.5 w-3.5" /></button>
+                    </div>
+                  </div>
+                  <input type="text" value={item.serving} onChange={(e) => updateItem(index, { serving: e.target.value })}
+                    placeholder="Serving size" className="bg-transparent text-xs text-zinc-400 border-b border-zinc-800 focus:border-zinc-600 focus:outline-none w-full" />
+                  <div className="grid grid-cols-4 gap-2">
+                    {([
+                      { key: "calories" as const, label: "kcal", color: "text-white" },
+                      { key: "protein" as const, label: "Protein", color: "text-emerald-400" },
+                      { key: "carbs" as const, label: "Carbs", color: "text-blue-400" },
+                      { key: "fat" as const, label: "Fat", color: "text-amber-400" },
+                    ]).map((field) => (
+                      <div key={field.key}>
+                        <input type="number" value={item[field.key]} onChange={(e) => updateItem(index, { [field.key]: Number(e.target.value) })}
+                          className={cn("w-full bg-zinc-900/50 border border-zinc-800 rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-violet-500", field.color)} />
+                        <div className="text-[10px] text-zinc-500 text-center mt-0.5">{field.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-right text-[10px] text-zinc-500">
+                    Total: <span className="text-emerald-400 font-medium">{item.calories * item.quantity} kcal</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setAnalyzedItems((prev) => [...prev, { name: "", serving: "1 serving", calories: 0, protein: 0, carbs: 0, fat: 0, quantity: 1 }])}>
+              <Plus className="h-3 w-3" /> Add Item
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {error && <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">{error}</div>}
+
+      {analyzedItems.length > 0 && (
+        <Button onClick={handleLogMeal} loading={saving} className="w-full gap-2">
+          <Save className="h-4 w-4" /> Log This Meal
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function CustomSubTab({ onAddMeal }: { onAddMeal: (meal: { name: string; type: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }) => void }) {
+  const [name, setName] = React.useState("");
+  const [calories, setCalories] = React.useState("");
+  const [protein, setProtein] = React.useState("");
+  const [carbs, setCarbs] = React.useState("");
+  const [fat, setFat] = React.useState("");
+  const [serving, setServing] = React.useState("");
+  const [saved, setSaved] = React.useState(false);
+
+  const handleSave = () => {
+    if (!name.trim()) return;
+    onAddMeal({ name: name.trim(), type: "custom", calories: Number(calories) || 0, protein_g: Number(protein) || 0, carbs_g: Number(carbs) || 0, fat_g: Number(fat) || 0 });
+    setSaved(true);
+    setTimeout(() => { setName(""); setCalories(""); setProtein(""); setCarbs(""); setFat(""); setServing(""); setSaved(false); }, 1200);
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <label className="text-xs text-zinc-400 mb-1 block">Food Name</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600" placeholder="e.g. Homemade Dal" />
+        </div>
+        <div>
+          <label className="text-xs text-zinc-400 mb-1 block">Serving Size</label>
+          <input type="text" value={serving} onChange={(e) => setServing(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600" placeholder="e.g. 1 bowl" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className="text-xs text-zinc-400 mb-1 block">Calories (kcal)</label><input type="number" value={calories} onChange={(e) => setCalories(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600" placeholder="0" /></div>
+          <div><label className="text-xs text-zinc-400 mb-1 block">Protein (g)</label><input type="number" value={protein} onChange={(e) => setProtein(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600" placeholder="0" /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className="text-xs text-zinc-400 mb-1 block">Carbs (g)</label><input type="number" value={carbs} onChange={(e) => setCarbs(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600" placeholder="0" /></div>
+          <div><label className="text-xs text-zinc-400 mb-1 block">Fat (g)</label><input type="number" value={fat} onChange={(e) => setFat(e.target.value)} className="w-full rounded-xl border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-zinc-600" placeholder="0" /></div>
+        </div>
+        <Button onClick={handleSave} disabled={!name.trim()} variant={saved ? "success" : "default"} className="w-full gap-2">
+          {saved ? "\u2713 Saved!" : <><Save className="h-4 w-4" /> Save Custom Food</>}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

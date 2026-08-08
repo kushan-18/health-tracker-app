@@ -2,15 +2,24 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Zap, ArrowRight, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
-export default function OtpPage() {
+const supabase = createClient();
+
+function OtpPageContent() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [isResend, setIsResend] = useState(false);
+  const [error, setError] = useState("");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") || "";
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -61,17 +70,47 @@ export default function OtpPage() {
 
   const handleVerify = async () => {
     if (otp.join("").length !== 6) return;
+    if (!email) {
+      setError("Missing email. Please go back and try again.");
+      return;
+    }
     setIsVerifying(true);
-    await new Promise((r) => setTimeout(r, 2000));
+    setError("");
+
+    const token = otp.join("");
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "email",
+    });
+
+    if (verifyError) {
+      setError(verifyError.message);
+      setIsVerifying(false);
+      return;
+    }
+
     setIsVerifying(false);
-    window.location.href = "/profile/setup";
+    router.push("/profile/setup");
   };
 
   const handleResend = async () => {
+    if (!email) {
+      setError("Missing email. Please go back and try again.");
+      return;
+    }
     setIsResend(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setCountdown(30);
+    setError("");
+    const { error: sendError } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
     setIsResend(false);
+    if (sendError) {
+      setError(sendError.message);
+      return;
+    }
+    setCountdown(30);
   };
 
   const isComplete = otp.every((d) => d !== "");
@@ -92,6 +131,16 @@ export default function OtpPage() {
         </div>
 
         <div className="glass rounded-2xl p-6 sm:p-8">
+          {!email && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+              No email provided. Please restart signup.
+            </div>
+          )}
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+              {error}
+            </div>
+          )}
           <div className="flex justify-center gap-3 mb-8">
             {otp.map((digit, i) => (
               <motion.input
@@ -100,6 +149,7 @@ export default function OtpPage() {
                 type="text"
                 inputMode="numeric"
                 maxLength={6}
+                aria-label={`Verification code digit ${i + 1}`}
                 value={digit}
                 onChange={(e) => handleChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
@@ -136,5 +186,13 @@ export default function OtpPage() {
         </p>
       </motion.div>
     </div>
+  );
+}
+
+export default function OtpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-white/40" /></div>}>
+      <OtpPageContent />
+    </Suspense>
   );
 }

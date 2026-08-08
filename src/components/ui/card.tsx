@@ -7,12 +7,15 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("glass rounded-2xl p-6", className)}
+    className={cn("app-card relative overflow-hidden p-6 transition-all duration-200 hover:border-white/15 hover:shadow-[0_8px_40px_-12px_rgba(16,185,129,0.25)]", className)}
     {...props}
-  />
+  >
+    <div className="card-glow" aria-hidden="true" />
+    {children}
+  </div>
 ));
 Card.displayName = "Card";
 
@@ -68,12 +71,30 @@ interface StatCardProps {
   className?: string;
 }
 
-function StatCard({ icon, label, value, change, className }: StatCardProps) {
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  change?: number;
+  className?: string;
+  tone?: "emerald" | "blue" | "violet" | "amber" | "rose" | "cyan";
+}
+
+const toneGradients: Record<NonNullable<StatCardProps["tone"]>, string> = {
+  emerald: "icon-tile",
+  blue: "bg-gradient-to-br from-blue-500 to-cyan-500 shadow-[0_8px_20px_-8px_rgba(59,130,246,0.55)]",
+  violet: "bg-gradient-to-br from-violet-500 to-purple-500 shadow-[0_8px_20px_-8px_rgba(139,92,246,0.55)]",
+  amber: "bg-gradient-to-br from-amber-500 to-orange-500 shadow-[0_8px_20px_-8px_rgba(245,158,11,0.55)]",
+  rose: "bg-gradient-to-br from-rose-500 to-pink-500 shadow-[0_8px_20px_-8px_rgba(244,63,94,0.55)]",
+  cyan: "bg-gradient-to-br from-cyan-500 to-teal-500 shadow-[0_8px_20px_-8px_rgba(34,211,238,0.55)]",
+};
+
+function StatCard({ icon, label, value, change, className, tone = "emerald" }: StatCardProps) {
   return (
     <Card className={cn("relative overflow-hidden", className)}>
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/15 text-purple-400">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${toneGradients[tone]} transition-transform duration-200 group-hover:scale-110`}>
             {icon}
           </div>
           <div>
@@ -129,7 +150,7 @@ function GradientCard({ className, children, ...props }: GradientCardProps) {
   return (
     <div
       className={cn(
-        "rounded-2xl p-6 bg-gradient-to-br from-purple-600/20 to-blue-600/20 border border-purple-500/10",
+        "rounded-2xl p-6 bg-gradient-to-br from-emerald-500/15 via-teal-500/5 to-violet-500/15 border border-emerald-500/15 transition-shadow duration-200 hover:shadow-[0_8px_40px_-12px_rgba(16,185,129,0.3)]",
         className
       )}
       {...props}

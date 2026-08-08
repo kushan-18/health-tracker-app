@@ -11,9 +11,7 @@ import {
   Settings,
   LogOut,
   ChevronDown,
-  Check,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth-context";
 import { useLogout } from "@/lib/hooks";
@@ -23,53 +21,15 @@ interface NavbarProps {
   title: string;
 }
 
-const notifications = [
-  {
-    id: "1",
-    title: "Workout Complete!",
-    message: "You burned 420 calories in your Push Day session.",
-    time: "2 min ago",
-    read: false,
-  },
-  {
-    id: "2",
-    title: "Water Reminder",
-    message: "Time to drink a glass of water. Stay hydrated!",
-    time: "1 hour ago",
-    read: false,
-  },
-  {
-    id: "3",
-    title: "Achievement Unlocked",
-    message: "You earned the '7-Day Streak' badge!",
-    time: "3 hours ago",
-    read: false,
-  },
-  {
-    id: "4",
-    title: "Weekly Goal",
-    message: "You're 80% towards your workout goal this week.",
-    time: "Yesterday",
-    read: true,
-  },
-];
-
 function Navbar({ title }: NavbarProps) {
   const { theme, toggleTheme, streaks, level, coins } = useStore();
   const { user } = useAuth();
   const handleLogout = useLogout();
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [showProfile, setShowProfile] = React.useState(false);
-  const [notifState, setNotifState] = React.useState(notifications);
-
-  const unreadCount = notifState.filter((n) => !n.read).length;
-
-  const markAllRead = () => {
-    setNotifState((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
 
   return (
-    <header className="fixed top-0 right-0 left-0 z-20 h-16 glass border-b border-border">
+    <header className="fixed top-0 right-0 left-0 z-20 h-16 bg-background/90 backdrop-blur-md border-b border-border">
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-3">
           <button
@@ -113,11 +73,6 @@ function Navbar({ title }: NavbarProps) {
               aria-expanded={showNotifications}
             >
               <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {unreadCount}
-                </span>
-              )}
             </button>
 
             <AnimatePresence>
@@ -126,47 +81,21 @@ function Navbar({ title }: NavbarProps) {
                   initial={{ opacity: 0, y: 8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                  className="absolute right-0 top-12 w-80 glass-strong rounded-xl border border-border shadow-2xl overflow-hidden"
+                  className="absolute right-0 top-12 w-80 bg-zinc-900 border border-zinc-700/60 rounded-xl shadow-2xl overflow-hidden"
                 >
                   <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
                     <h3 className="text-sm font-semibold text-white">
                       Notifications
                     </h3>
-                    <button
-                      onClick={markAllRead}
-                      className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors"
-                    >
-                      <Check className="h-3 w-3" />
-                      Mark all read
-                    </button>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
-                    {notifState.map((n) => (
-                      <div
-                        key={n.id}
-                        className={cn(
-                          "border-b border-border px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors",
-                          !n.read && "bg-purple-500/5"
-                        )}
-                      >
-                        <div className="flex items-start gap-2">
-                          {!n.read && (
-                            <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-purple-500" />
-                          )}
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-white">
-                              {n.title}
-                            </p>
-                            <p className="text-xs text-zinc-400 mt-0.5">
-                              {n.message}
-                            </p>
-                            <p className="text-[10px] text-zinc-500 mt-1">
-                              {n.time}
-                            </p>
-                          </div>
-                        </div>
+                    <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
+                        <Bell className="h-5 w-5 text-zinc-500" />
                       </div>
-                    ))}
+                      <p className="text-sm font-medium text-zinc-300">No notifications yet</p>
+                      <p className="mt-1 text-xs text-zinc-500">We&apos;ll notify you here when something needs your attention.</p>
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -195,7 +124,7 @@ function Navbar({ title }: NavbarProps) {
                   initial={{ opacity: 0, y: 8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                  className="absolute right-0 top-12 w-64 glass-strong rounded-xl border border-border shadow-2xl overflow-hidden"
+                  className="absolute right-0 top-12 w-64 bg-zinc-900 border border-zinc-700/60 rounded-xl shadow-2xl overflow-hidden"
                 >
                   <div className="border-b border-white/5 px-4 py-3">
                     <p className="text-sm font-semibold text-white">

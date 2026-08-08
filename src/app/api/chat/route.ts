@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     const stream = await ai.models.generateContentStream({
-      model: "gemini-2.5-flash",
+      model: "gemini-flash-latest",
       contents,
       config: {
         systemInstruction,
@@ -114,7 +114,8 @@ export async function POST(req: NextRequest) {
             encoder.encode(`data: ${JSON.stringify({ done: true, conversationId: convId })}\n\n`)
           );
         } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : "Stream failed";
+          console.error("Chat stream error:", err);
+          const errorMessage = err instanceof Error ? err.message : JSON.stringify(err) || "Stream failed";
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`)
           );
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("Chat API error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
+    const message = err instanceof Error ? err.message : JSON.stringify(err) || "Internal server error";
     return new Response(JSON.stringify({ error: message }), { status: 500 });
   }
 }

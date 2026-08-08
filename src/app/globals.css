@@ -53,6 +53,64 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Ambient app background — emerald/violet radial glows + subtle grid, mirroring the landing hero */
+.ambient-app {
+  background-color: #09090b;
+  background-image:
+    radial-gradient(42% 42% at 30% 18%, rgba(16, 185, 129, 0.18), transparent 68%),
+    radial-gradient(38% 38% at 82% 24%, rgba(6, 182, 212, 0.14), transparent 66%),
+    radial-gradient(44% 42% at 70% 82%, rgba(139, 92, 246, 0.15), transparent 68%),
+    radial-gradient(34% 34% at 12% 78%, rgba(16, 185, 129, 0.1), transparent 68%),
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: auto, auto, auto, auto, 52px 52px, 52px 52px;
+}
+
+/* Gradient-accented card surface used across the app */
+.app-card {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+/* Soft gradient glow that sits inside a card (pointer-events: none) */
+.card-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  pointer-events: none;
+  background:
+    radial-gradient(120px 80px at 100% 0%, rgba(16, 185, 129, 0.12), transparent 70%),
+    radial-gradient(120px 80px at 0% 100%, rgba(139, 92, 246, 0.12), transparent 70%);
+  opacity: 0.6;
+  transition: opacity 0.25s ease;
+}
+
+.card-glow:hover {
+  opacity: 1;
+}
+
+/* Gradient icon tiles, matching landing feature cards */
+.icon-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  color: #fff;
+  background: linear-gradient(135deg, #10b981, #14b8a6);
+  box-shadow: 0 8px 20px -8px rgba(16, 185, 129, 0.55);
+}
+
+/* Gradient progress bar fill */
+.grad-bar-emerald { background: linear-gradient(90deg, #10b981, #34d399); box-shadow: 0 0 12px rgba(16, 185, 129, 0.4); }
+.grad-bar-blue { background: linear-gradient(90deg, #3b82f6, #22d3ee); box-shadow: 0 0 12px rgba(59, 130, 246, 0.4); }
+.grad-bar-violet { background: linear-gradient(90deg, #8b5cf6, #c084fc); box-shadow: 0 0 12px rgba(139, 92, 246, 0.4); }
+.grad-bar-amber { background: linear-gradient(90deg, #f59e0b, #fbbf24); box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); }
+.grad-bar-rose { background: linear-gradient(90deg, #f43f5e, #fb7185); box-shadow: 0 0 12px rgba(244, 63, 94, 0.4); }
+
 .glass-strong {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
@@ -137,6 +195,29 @@ body {
 .light .glass-strong {
   background: rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.light .ambient-app {
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(ellipse 60% 45% at 15% 0%, rgba(16, 185, 129, 0.1), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 10%, rgba(59, 130, 246, 0.1), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 75% 90%, rgba(139, 92, 246, 0.09), transparent 60%),
+    linear-gradient(rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.025) 1px, transparent 1px);
+  background-size: auto, auto, auto, 56px 56px, 56px 56px;
+}
+
+.light .app-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+}
+
+.light .card-glow {
+  background:
+    radial-gradient(120px 80px at 100% 0%, rgba(16, 185, 129, 0.14), transparent 70%),
+    radial-gradient(120px 80px at 0% 100%, rgba(139, 92, 246, 0.12), transparent 70%);
 }
 
 .light .text-gradient {

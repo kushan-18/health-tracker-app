@@ -7,16 +7,29 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import { Modal } from "@/components/ui/modal";
-import { exercises, workoutPlanSample } from "@/lib/data";
-import { getWorkouts, addWorkout } from "@/lib/data-operations";
+import { exercises } from "@/lib/data";
+import { getWorkouts, addWorkout, addWorkoutPlan } from "@/lib/data-operations";
 import { useAuth } from "@/lib/auth-context";
 import type { Exercise, WorkoutExercise, MuscleGroup } from "@/lib/types";
 import { cn, generateId } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play, Pause, RotateCcw, Plus, Trash2, Dumbbell, ChevronDown, ChevronUp,
-  Search, Sparkles, Clock, X, Check, BookOpen,
+  Search, Sparkles, Clock, X, Check, BookOpen, Loader2,
 } from "lucide-react";
+
+interface PlanExercise {
+  name: string;
+  sets: number;
+  reps: string;
+  notes?: string;
+}
+
+interface PlanDay {
+  day: string;
+  focus: string;
+  exercises: PlanExercise[];
+}
 
 const muscleGroups: MuscleGroup[] = ["Chest", "Back", "Shoulders", "Arms", "Legs", "Core"];
 const muscleGroupColors: Record<MuscleGroup, string> = {
@@ -583,11 +596,61 @@ function LibraryTab() {
 }
 
 function AIGeneratorTab() {
+  const { user } = useAuth();
   const [goal, setGoal] = React.useState("Muscle Building");
   const [experience, setExperience] = React.useState("Intermediate");
   const [days, setDays] = React.useState("4");
   const [equipment, setEquipment] = React.useState("Full Gym");
   const [generated, setGenerated] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [generatedPlan, setGeneratedPlan] = React.useState<PlanDay[]>([]);
+  const [saved, setSaved] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+
+  const generatePlan = async () => {
+    setError(null);
+    setSaved(false);
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/generate-workout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goal, experience, days: Number(days), equipment }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to generate plan. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+      setGeneratedPlan(data.plan || []);
+      setGenerated(true);
+    } catch {
+      setError("Network error while generating the plan. Please try again.");
+    }
+    setIsLoading(false);
+  };
+
+  const savePlan = async () => {
+    if (!user || generatedPlan.length === 0) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await addWorkoutPlan(user.id, {
+        goal,
+        experience,
+        days_per_week: Number(days),
+        equipment,
+        plan: generatedPlan,
+      });
+      setSaved(true);
+    } catch (e) {
+      console.error("Failed to save plan:", e);
+      setError("Failed to save the plan. Please try again.");
+    }
+    setSaving(false);
+  };
 
   return (
     <div className="space-y-4">
@@ -599,6 +662,9 @@ function AIGeneratorTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">{error}</div>
+            )}
             <div className="space-y-2">
               <label className="text-sm text-zinc-300 font-medium">Goal</label>
               <div className="grid grid-cols-2 gap-2">
@@ -675,8 +741,9 @@ function AIGeneratorTab() {
                 ))}
               </div>
             </div>
-            <Button size="lg" className="w-full" onClick={() => setGenerated(true)}>
-              <Sparkles className="h-5 w-5" /> Generate Plan
+            <Button size="lg" className="w-full" onClick={generatePlan} disabled={isLoading}>
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+              {isLoading ? "Generating…" : "Generate Plan"}
             </Button>
           </CardContent>
         </Card>
@@ -694,8 +761,12 @@ function AIGeneratorTab() {
             </CardContent>
           </Card>
 
-          {workoutPlanSample.filter((d) => d.exercises.length > 0).map((day, i) => (
-            <motion.div key={day.day} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+          {error && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">{error}</div>
+          )}
+
+          {generatedPlan.filter((d) => d.exercises.length > 0).map((day, i) => (
+            <motion.div key={`${day.day}-${i}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">{day.day} — {day.focus}</CardTitle>
@@ -704,7 +775,8 @@ function AIGeneratorTab() {
                   <div className="space-y-2">
                     {day.exercises.map((ex, j) => (
                       <div key={j} className="flex items-center justify-between py-2 border-b border-zinc-800 last:border-0">
-                        <span className="text-sm text-white">{ex}</span>
+                        <span className="text-sm text-white">{ex.name}</span>
+                        <span className="text-xs text-violet-400">{ex.sets > 0 ? `${ex.sets}×${ex.reps}` : ex.reps}</span>
                       </div>
                     ))}
                   </div>
@@ -713,8 +785,15 @@ function AIGeneratorTab() {
             </motion.div>
           ))}
 
-          <Button className="w-full" onClick={() => alert("Plan saved!")}>
-            <Check className="h-4 w-4" /> Save This Plan
+          {saved && (
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-400">
+              Plan saved successfully. You can view it in your workout history.
+            </div>
+          )}
+
+          <Button className="w-full" onClick={savePlan} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            {saving ? "Saving…" : "Save This Plan"}
           </Button>
         </div>
       )}

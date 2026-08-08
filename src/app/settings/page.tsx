@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
+import { getPreferences, updatePreferences } from "@/lib/data-operations";
 
 const supabase = createClient();
 import { cn } from "@/lib/utils";
@@ -26,14 +27,69 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = React.useState({ workout: true, meals: true, water: true, social: false, news: false });
   const [units, setUnits] = React.useState({ weight: "kg", height: "cm", distance: "km" });
   const [privacy, setPrivacy] = React.useState({ profileVisibility: "friends", activitySharing: true, showOnLeaderboard: true });
+  const [saveState, setSaveState] = React.useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  React.useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const prefs = await getPreferences(user.id);
+        if (prefs.notifications) setNotifications((prev) => ({ ...prev, ...(prefs.notifications as typeof notifications) }));
+        if (prefs.units) setUnits((prev) => ({ ...prev, ...(prefs.units as typeof units) }));
+        if (prefs.privacy) setPrivacy((prev) => ({ ...prev, ...(prefs.privacy as typeof privacy) }));
+      } catch (e) {
+        console.error("Failed to load settings:", e);
+      }
+    })();
+  }, [user]);
+
+  const persist = React.useCallback(
+    async (next: { notifications: typeof notifications; units: typeof units; privacy: typeof privacy }) => {
+      if (!user) return;
+      setSaveState("saving");
+      try {
+        await updatePreferences(user.id, next);
+        setSaveState("saved");
+      } catch (e) {
+        console.error("Failed to save settings:", e);
+        setSaveState("error");
+      }
+    },
+    [user]
+  );
 
   const toggleNotif = (key: keyof typeof notifications) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+    const next = { ...notifications, [key]: !notifications[key] };
+    setNotifications(next);
+    persist({ notifications: next, units, privacy });
+  };
+
+  const togglePrivacy = (key: keyof typeof privacy) => {
+    const next = { ...privacy, [key]: !privacy[key] };
+    setPrivacy(next);
+    persist({ notifications, units, privacy: next });
+  };
+
+  const setUnit = (key: keyof typeof units, value: string) => {
+    const next = { ...units, [key]: value };
+    setUnits(next);
+    persist({ notifications, units: next, privacy });
+  };
+
+  const setProfileVisibility = (value: string) => {
+    const next = { ...privacy, profileVisibility: value };
+    setPrivacy(next);
+    persist({ notifications, units, privacy: next });
   };
 
   return (
     <AppLayout title="Settings">
       <motion.div variants={stagger} initial="initial" animate="animate" className="max-w-2xl mx-auto space-y-6">
+        {saveState !== "idle" && (
+          <div className={cn("text-sm px-4 py-2 rounded-lg border", saveState === "saving" ? "bg-zinc-800/60 border-zinc-700 text-zinc-300" : saveState === "saved" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400")}>
+            {saveState === "saving" ? "Saving changes…" : saveState === "saved" ? "Changes saved" : "Failed to save — please try again"}
+          </div>
+        )}
         {/* Appearance */}
         <motion.div variants={fadeIn}>
           <Card>
@@ -93,7 +149,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-white">Profile Visibility</p>
                     <p className="text-xs text-zinc-500">Who can see your profile</p>
                   </div>
-                  <select value={privacy.profileVisibility} onChange={(e) => setPrivacy((p) => ({ ...p, profileVisibility: e.target.value }))} className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                  <select value={privacy.profileVisibility} onChange={(e) => setProfileVisibility(e.target.value)} className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
                     <option value="public">Public</option>
                     <option value="friends">Friends</option>
                     <option value="private">Private</option>
@@ -108,7 +164,7 @@ export default function SettingsPage() {
                       <p className="text-sm text-white">{item.label}</p>
                       <p className="text-xs text-zinc-500">{item.desc}</p>
                     </div>
-                    <button onClick={() => setPrivacy((p) => ({ ...p, [item.key]: !p[item.key] }))} className={cn("relative w-12 h-6 rounded-full transition-colors", privacy[item.key] ? "bg-violet-600" : "bg-zinc-700")}>
+                    <button onClick={() => togglePrivacy(item.key)} className={cn("relative w-12 h-6 rounded-full transition-colors", privacy[item.key] ? "bg-violet-600" : "bg-zinc-700")}>
                       <div className={cn("absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform", privacy[item.key] ? "translate-x-6" : "translate-x-0.5")} />
                     </button>
                   </div>
@@ -156,7 +212,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-white">{item.label}</p>
                     <div className="flex gap-1 bg-zinc-800 rounded-lg p-0.5">
                       {item.options.map((opt) => (
-                        <button key={opt} onClick={() => setUnits((u) => ({ ...u, [item.key]: opt }))} className={cn("px-3 py-1 rounded-md text-xs font-medium transition-all", units[item.key] === opt ? "bg-violet-600 text-white" : "text-zinc-400 hover:text-zinc-200")}>
+                        <button key={opt} onClick={() => setUnit(item.key, opt)} className={cn("px-3 py-1 rounded-md text-xs font-medium transition-all", units[item.key] === opt ? "bg-violet-600 text-white" : "text-zinc-400 hover:text-zinc-200")}>
                           {opt}
                         </button>
                       ))}
